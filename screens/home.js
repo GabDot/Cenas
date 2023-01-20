@@ -107,8 +107,8 @@ export default function Home() {
                         renderItem={({ item }) => (
                             <EventItem events={item}/>
                         )} />
+                        <Text style={global.h2}>Agenda</Text>
                 <FlatList
-                        
                         showsHorizontalScrollIndicator={false} 
                         horizontal={true} 
                         contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
