@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginRight: 17,
         marginTop: 50,
+        marginBottom:10,
         zIndex: 2,
         paddingHorizontal: 9,
         paddingVertical: 6
