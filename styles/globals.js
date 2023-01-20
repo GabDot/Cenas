@@ -17,5 +17,10 @@ export const global = StyleSheet.create({
         fontFamily: 'sans-medium',
         fontSize: 16,
         color: 'rgba(30, 30, 30, 0.63)'
+    },
+    p2:{
+        fontFamily: 'sans-medium',
+        fontSize: 12,
+        color: 'rgba(30, 30, 30, 0.63)'
     }
 })

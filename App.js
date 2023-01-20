@@ -36,7 +36,7 @@ export default function App() {
 
     <NavigationContainer>
       <Tab.Navigator
-        barStyle={{ backgroundColor: 'white' }}>
+        barStyle={[styles.navbar,{ backgroundColor: 'white' }]}>
         <Tab.Screen name="Home" component={Home}
           options={{
             tabBarLabel: 'Home',
@@ -47,6 +47,20 @@ export default function App() {
         <Tab.Screen name="User" component={User}
           options={{
             tabBarLabel: 'Eu',
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons name="account-circle" color={color} size={26} />
+            ),
+          }} />
+          <Tab.Screen name="Notas" component={User}
+          options={{
+            tabBarLabel: 'Notas',
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons name="account-circle" color={color} size={26} />
+            ),
+          }} />
+          <Tab.Screen name="Ementa" component={User}
+          options={{
+            tabBarLabel: 'Ementa',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="account-circle" color={color} size={26} />
             ),
@@ -63,4 +77,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F6F6F6',
 
   },
+  navbar:{
+    width:'100%',
+    height:92,
+    alignContent:'center',
+    justifyContent:'center',
+
+  }
 });

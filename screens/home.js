@@ -3,13 +3,40 @@ import { ScrollView } from 'react-native-gesture-handler';
 import Header from '../components/Header';
 import QuickNavItem from '../components/QuickNavItem';
 import EventItem from '../components/EventItem';
+import AgendaItem from '../components/AgendaItem';
 import { useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { global } from "../styles/globals";
 export default function Home() {
     const [item, setItem] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
+    const events = [
+        {
+            title:"Corta mato 2022/2023",
+            description:"Inscreve te no corta mato",
+            image:require("../assets/CORTAMATO22.jpg"),
+        },
+        {
+            title:"Palestra da RTP",
+            description:"Não vamos ter aulas pra ter uma palestra",
+            image:require("../assets/CORTAMATO22.jpg")
+        }
+    ]
+    const agenda = [
+        {
+            title:"Teste de matemática",
+            date:"31 de janeiro",
+            time:"13:55",
+            color:"#C7254E"
+        },
+        {
+            title:"Teste de Programação",
+            date:"15 de fevereiro",
+            time:"8:30",
+            color:"#337AB7"
+        }
 
+    ]
     const deleteItem = (name, key) => {
         setItem((prevItem) => {
             return prevItem.filter(item => item.key != key)
@@ -61,6 +88,7 @@ export default function Home() {
                 <Text style={global.h2}>Navegação rápida</Text>
                 <ScrollView showsHorizontalScrollIndicator={false} horizontal={true} contentContainerStyle={styles.QuickNav}>
                     <FlatList
+                        
                         contentContainerStyle={{ flexDirection: "row" }}
                         data={item}
                         renderItem={({ item }) => (
@@ -70,12 +98,26 @@ export default function Home() {
 
                 </ScrollView>
                 <Text style={global.h2}>Eventos</Text>
-                <ScrollView showsHorizontalScrollIndicator={false} horizontal={true} contentContainerStyle={styles.eventos}>
-                    <EventItem></EventItem>
-                    <EventItem></EventItem>
-                    <EventItem></EventItem>
+                <FlatList
+                        
+                        showsHorizontalScrollIndicator={false} 
+                        horizontal={true} 
+                        contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
+                        data={events}
+                        renderItem={({ item }) => (
+                            <EventItem events={item}/>
+                        )} />
+                <FlatList
+                        
+                        showsHorizontalScrollIndicator={false} 
+                        horizontal={true} 
+                        contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
+                        data={agenda}
+                        renderItem={({ item }) => (
+                            <AgendaItem agenda={item}/>
+                        )} />
 
-                </ScrollView>
+                
 
             </View>
         </View>
