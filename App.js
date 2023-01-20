@@ -47,7 +47,7 @@ export default function App() {
           headerShown: false,
           tabBarShowLabel: false
         }}>
-        <Tab.Screen name="Hoe" component={Home}
+        <Tab.Screen name="Holele" component={Home}
           options={{
             
             tabBarIcon: ({ color }) => (
