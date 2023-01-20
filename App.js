@@ -39,7 +39,7 @@ export default function App() {
         barStyle={[styles.navbar,{ backgroundColor: 'white' }]}>
         <Tab.Screen name="Home" component={Home}
           options={{
-            tabBarLabel: 'Home',
+            tabBarLabel: 'Hoho',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="home" color={color} size={26} />
             ),
