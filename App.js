@@ -20,7 +20,6 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       await SplashScreen.preventAutoHideAsync();
-
     }
     prepare();
 
