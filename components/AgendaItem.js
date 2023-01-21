@@ -6,19 +6,19 @@ import { global } from "../styles/globals";
 
 export default function AgendaItem({agenda}) {
     return (
-        <View style={styles.component}>
-            <View style={[styles.color,{ backgroundColor: agenda.color }]}>
-            
-            </View>
-            
-            <Pressable style={styles.container}>
-                <View style={styles.content}>
-                    <Text style={global.h2}>{agenda.title}</Text>
-                    <Text style={global.p}>{agenda.date} - {agenda.time} </Text>
-                    
-                </View>
-            </Pressable>
+        <>
+        <View style={[styles.color,{ backgroundColor: agenda.color }]}>
+        
         </View>
+        
+        <Pressable style={styles.container}>
+            <View style={styles.content}>
+                <Text style={global.h2}>{agenda.title}</Text>
+                <Text style={global.p}>{agenda.date} - {agenda.time} </Text>
+                
+            </View>
+        </Pressable>
+        </>
     )
 }
 const styles = StyleSheet.create({
@@ -27,6 +27,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderRadius: 10,
         marginRight: 17,
+        marginTop: 50,
         zIndex: 2,
         paddingHorizontal: 9,
         paddingVertical: 6,
@@ -48,16 +49,13 @@ const styles = StyleSheet.create({
         zIndex:-1,
         elevation: (Platform.OS === 'android') ? -1 : 0,
         width:290,
-        marginTop:-20,
+        marginTop:30,
         height:73,
         borderTopRightRadius:10,
         borderTopLeftRadius:10,
 
 
 
-    },
-    component:{
-        marginTop:20
     }
 
 
