@@ -48,21 +48,21 @@ export default function App() {
           tabBarShowLabel: false,
           tabBarStyle: { height: 80 },
         }}>
-        <Tab.Screen name="Holele" component={Home}
+        <Tab.Screen name="Home" component={Home}
           options={{
             
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="home" color={color} size={38} />
             ),
           }} />
-        <Tab.Screen name="User" component={User}
+        <Tab.Screen name="Notas" component={User}
           options={{
             
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="clipboard-list" color={color} size={38} />
             ),
           }} />
-          <Tab.Screen name="Notas" component={User}
+          <Tab.Screen name="User" component={User}
           options={{
             
             tabBarIcon: ({ color }) => (

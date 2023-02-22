@@ -7,9 +7,31 @@ import AgendaItem from '../components/AgendaItem';
 import { useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { global } from "../styles/globals";
+import SelectableQuickNav from "../components/SelectableQuickNav"
 export default function Home() {
     const [item, setItem] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
+    const screens = [
+        
+        {
+            name:"Notas",
+            icon:"clipboard-list"
+        },
+        {
+            name:"Ementa",
+            icon:"silverware"
+        },
+        
+        {
+            name:"Notas",
+            icon:"clipboard-list"
+        },
+        {
+            name:"Ementa",
+            icon:"silverware"
+        },
+    ]
+    
     const events = [
         {
             title:"Corta mato 2022/2023",
@@ -45,10 +67,10 @@ export default function Home() {
 
 
     }
-    const submitHandler = (value, icon, color) => {
+    const submitHandler = (value, icon, color, route) => {
         setItem((prevItem) => {
             return [
-                { name: value, key: Math.random().toString(), icon: icon, color: color }, ...prevItem
+                { name: value, key: Math.random().toString(), icon: icon, color: color, route: route }, ...prevItem
             ]
         })
     }
@@ -56,7 +78,7 @@ export default function Home() {
     return (
         <View >
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={false}
                 visible={modalVisible}
                 onRequestClose={() => {
@@ -64,24 +86,27 @@ export default function Home() {
                 }}
             >
 
-                <View style={styles.centeredView}>
-                    <Pressable onPress={() => { setModalVisible(!modalVisible); submitHandler("coiso", "aa", 'orange') }}>
-                        <Text>Coiso</Text>
-                    </Pressable>
-                    <Pressable onPress={() => { setModalVisible(!modalVisible); submitHandler("outro\ncoiso", 'bb', 'green') }}>
-                        <Text>Outro Coiso</Text>
-                    </Pressable>
+                <View style={[styles.QuickNavModal, {flex:1}]}>
+                <FlatList
+                        showsHorizontalScrollIndicator={false} 
+                        numColumns={5}
+                        data={screens}
+                        renderItem={({ item }) => (
+                            <SelectableQuickNav screens={item} submitHandler={submitHandler} setModalVisible={setModalVisible} modalVisible={modalVisible} />
+                        )}
+                    />
                     <Pressable
                         style={[styles.button, styles.buttonClose]}
                         onPress={() => { setModalVisible(!modalVisible) }}
                     >
-                        <Text style={styles.textStyle}>Fechar</Text>
+                        <MaterialCommunityIcons name='window-close' color='#A4A4A4' size={50} />
                     </Pressable>
                 </View>
             </Modal>
             <Header></Header>
             <View style={styles.container}>
                 <View style={styles.title}>
+                
                     <Text style={global.h1}>Bem vindo,</Text>
                     <Text style={global.p}>Gabriel Silva</Text>
                 </View>
@@ -143,5 +168,17 @@ const styles = StyleSheet.create({
         opacity: 1,
         alignItems: 'center'
 
+    },
+    QuickNavModal:{
+        flexDirection: 'column', 
+        flexGrow: 1,            // all the available vertical space will be occupied by it
+        justifyContent: 'space-between',
+        padding:25
+
+    },
+    buttonClose:{
+        alignSelf:'center'
+        
+        
     }
 });

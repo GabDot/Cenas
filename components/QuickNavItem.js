@@ -3,7 +3,7 @@ import { TouchableOpacity } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { useState } from "react";
 import { global } from "../styles/globals";
-
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 export default function QuickNavItem({ item, deleteItem }) {
     const navigation = useNavigation();
     const [modalVisible, setModalVisible] = useState(false);
@@ -19,7 +19,7 @@ export default function QuickNavItem({ item, deleteItem }) {
                 }}
             >
 
-                <View>
+                <View >
                     <Pressable onPress={() => { setModalVisible(!modalVisible); deleteItem(item.name, item.key) }}>
                         <Text>Apagar</Text>
                     </Pressable>
@@ -29,11 +29,11 @@ export default function QuickNavItem({ item, deleteItem }) {
 
                 </View>
             </Modal>
-            <TouchableOpacity onPress={() => navigation.navigate('User')} onLongPress={() => { setModalVisible(true) }}>
+            <TouchableOpacity  onPress={() => navigation.navigate(item.route)} onLongPress={() => { setModalVisible(true) }}>
                 <View style={[{ backgroundColor: item.color }, styles.container]} >
 
 
-
+                <MaterialCommunityIcons name={item.icon} color='#A4A4A4' size={60} />
 
                 </View>
                 <Text style={[global.p, { textAlign: 'center', marginRight: 5 }]}>{item.name}</Text>
@@ -48,6 +48,10 @@ const styles = StyleSheet.create({
         height: 67,
         borderRadius: 10,
         marginRight: 5,
+        justifyContent:'center',
+        alignItems:'center'
     }
+    
+        
 
 })
