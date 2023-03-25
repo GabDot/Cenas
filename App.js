@@ -4,11 +4,15 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import Home from './screens/home';
 import User from './screens/user';
+import Login from './screens/login';
 import * as SplashScreen from "expo-splash-screen"
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font'
+
+
 export default function App() {
   const Tab = createBottomTabNavigator();
   const [fontsLoaded] = useFonts({
@@ -25,6 +29,8 @@ export default function App() {
     prepare();
 
   }, []);
+  const[isLoggedIn,setIsLoggedIn] = useState(false)
+  
 
   if (!fontsLoaded) {
     return undefined
@@ -32,29 +38,28 @@ export default function App() {
   else {
     SplashScreen.hideAsync();
   }
-
+  const Stack = createStackNavigator();
   return (
     <>
     <StatusBar translucent></StatusBar>
     
 
     <NavigationContainer>
-      <Tab.Navigator
-        
-        barStyle={[styles.navbar,{ backgroundColor: 'white' }]}
+    {isLoggedIn ? (
+        <Tab.Navigator  barStyle={[styles.navbar,{ backgroundColor: 'white' }]}
         screenOptions={{
           tabBarActiveTintColor: '#1E1E1E',
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: { height: 80 },
         }}>
-        <Tab.Screen name="Home" component={Home}
+          <Tab.Screen name="Home" 
           options={{
             
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="home" color={color} size={38} />
             ),
-          }} />
+          }} >{(props) => <Home {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}</Tab.Screen>
         <Tab.Screen name="Notas" component={User}
           options={{
             
@@ -83,8 +88,17 @@ export default function App() {
               <MaterialCommunityIcons name="dots-horizontal" color={color} size={38} />
             ),
           }} />
-      </Tab.Navigator>
-    </NavigationContainer>
+        </Tab.Navigator>
+      ) : (
+        <Stack.Navigator>
+           <Stack.Screen name="Login" options={{ headerShown: false }}>
+    {(props) => <Login {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}
+  </Stack.Screen>
+        </Stack.Navigator>
+      )}
+       </NavigationContainer>
+      
+       
     </>
   );
 }

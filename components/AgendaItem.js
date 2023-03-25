@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     color:{
         position:'absolute',
         zIndex:-1,
-        elevation: (Platform.OS === 'android') ? -1 : 0,
+        elevation: -1,
         width:290,
         marginTop:30,
         height:73,

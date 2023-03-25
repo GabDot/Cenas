@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList } from 'react-native'
-import { ScrollView } from 'react-native-gesture-handler';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView} from 'react-native'
+import { useEffect } from 'react';
 import Header from '../components/Header';
 import QuickNavItem from '../components/QuickNavItem';
 import EventItem from '../components/EventItem';
@@ -7,10 +7,46 @@ import AgendaItem from '../components/AgendaItem';
 import { useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { global } from "../styles/globals";
+import { auth } from '../firebase';
+import { database } from '../firebase';
 import SelectableQuickNav from "../components/SelectableQuickNav"
-export default function Home() {
+export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
+    
     const [item, setItem] = useState([]);
+    const [eventos, setEventos] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
+    const uid = auth.currentUser.uid
+    const [username, setUsername] = useState('');
+    const userRef = database.collection('users').doc(uid);
+    const eventosRef = database.collection('eventos');
+    useEffect(() => {
+        const unsubscribe = loader()
+        
+        return () => unsubscribe;
+      }, []);
+      
+    
+    function loader(){
+        const eventos = [];
+  eventosRef.get().then((querySnapshot) => {
+    querySnapshot.forEach((documentSnapshot) => {
+      eventos.push(documentSnapshot.data());
+    });
+    setEventos(eventos);
+  });
+          userRef.get().then((doc) => {
+            if (doc.exists) {
+                const username = doc.data().nome;
+                setUsername(username);
+            
+            } else {
+            console.log('No user document found with ID:', uid);
+            }
+        }).catch((error) => {
+            console.error('Error getting user document:', error);
+        });
+        console.log("database loaded")
+    }
     const screens = [
         
         {
@@ -74,9 +110,14 @@ export default function Home() {
             ]
         })
     }
+    const handleSignOut =() => {
+        auth.signOut()
+        setIsLoggedIn(false)
+    }
+    
 
     return (
-        <View >
+        <View style={{flex:1}}>
             <Modal
                 animationType="fade"
                 transparent={false}
@@ -104,11 +145,12 @@ export default function Home() {
                 </View>
             </Modal>
             <Header></Header>
+            <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.container}>
                 <View style={styles.title}>
                 
                     <Text style={global.h1}>Bem vindo,</Text>
-                    <Text style={global.p}>Gabriel Silva</Text>
+                    <Text style={global.p}>{username}</Text>
                 </View>
                 <Text style={global.h2}>Navegação rápida</Text>
                 <ScrollView showsHorizontalScrollIndicator={false} horizontal={true} contentContainerStyle={styles.QuickNav}>
@@ -116,6 +158,7 @@ export default function Home() {
                         
                         contentContainerStyle={{ flexDirection: "row" }}
                         data={item}
+                        
                         renderItem={({ item }) => (
                             <QuickNavItem item={item} deleteItem={deleteItem} />
                         )} />
@@ -128,10 +171,11 @@ export default function Home() {
                         showsHorizontalScrollIndicator={false} 
                         horizontal={true} 
                         contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
-                        data={events}
+                        data={eventos}
                         renderItem={({ item }) => (
-                            <EventItem events={item}/>
+                            <EventItem eventos={item}/>
                         )} />
+                        <Text style={global.h2}>A tua agenda</Text>
                 <FlatList
                         
                         showsHorizontalScrollIndicator={false} 
@@ -141,10 +185,12 @@ export default function Home() {
                         renderItem={({ item }) => (
                             <AgendaItem agenda={item}/>
                         )} />
+                <TouchableOpacity onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
 
                 
 
             </View>
+            </ScrollView>
         </View>
     )
 }
@@ -162,6 +208,7 @@ const styles = StyleSheet.create({
     },
     container: {
         paddingHorizontal: 18,
+        flexGrow:1,
     },
     eventos: {
         marginTop: 10,

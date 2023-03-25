@@ -4,13 +4,13 @@ import { useNavigation } from '@react-navigation/native';
 import { useState } from "react";
 import { global } from "../styles/globals";
 
-export default function EventItem({events}) {
+export default function EventItem({eventos}) {
     return (
         <Pressable style={styles.container}>
-            <Image source={events.image} style={styles.image}></Image>
+            <Image source={{uri: eventos.imagem}} style={styles.image}></Image>
             <View style={styles.content}>
-                <Text style={global.h2}>{events.title}</Text>
-                <Text style={global.p}>{events.description}</Text>
+                <Text style={global.h2}>{eventos.titulo}</Text>
+                <Text style={global.p}>{eventos.desc}</Text>
             </View>
         </Pressable>
     )
