@@ -1,5 +1,6 @@
 // Import the functions you need from the SDKs you need
 import * as firebase from 'firebase';
+import 'firebase/firestore';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -24,5 +25,9 @@ else{
 }
 const auth = firebase.auth();
 const database = firebase.firestore();
+database.enablePersistence()
+  .catch(err => {
+    console.error('Error enabling Firestore persistence:', err);
+  });
 export {database};
 export {auth};
