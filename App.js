@@ -41,7 +41,7 @@ export default function App() {
   const Stack = createStackNavigator();
   return (
     <>
-    <StatusBar translucent></StatusBar>
+    <StatusBar style='light' backgroundColor='#9A9DBE'></StatusBar>
     
 
     <NavigationContainer>

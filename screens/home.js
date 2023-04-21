@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView} from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView, Button} from 'react-native'
 import { useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import Header from '../components/Header';
 import QuickNavItem from '../components/QuickNavItem';
 import EventItem from '../components/EventItem';
@@ -9,44 +10,155 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { global } from "../styles/globals";
 import { auth } from '../firebase';
 import { database } from '../firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import SelectableQuickNav from "../components/SelectableQuickNav"
+import NetInfo from '@react-native-community/netinfo';
 export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     
     const [item, setItem] = useState([]);
     const [eventos, setEventos] = useState([]);
+    const [agenda, setAgenda] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const uid = auth.currentUser.uid
     const [username, setUsername] = useState('');
     const userRef = database.collection('users').doc(uid);
     const eventosRef = database.collection('eventos');
-    useEffect(() => {
-        const unsubscribe = loader()
-        
-        return () => unsubscribe;
-      }, []);
-      
+    const agendaRef = database.collection('users').doc(uid).collection('agenda');
+    const [isConnected, setIsConnected] = useState(true);
+    const [loaded, setLoaded] = useState(false);
     
-    function loader(){
-        const eventos = [];
-  eventosRef.get().then((querySnapshot) => {
-    querySnapshot.forEach((documentSnapshot) => {
-      eventos.push(documentSnapshot.data());
+
+    useEffect(() => {
+      const unsubscribe = NetInfo.addEventListener((state) => {
+        setIsConnected(state.isConnected);
+      });
+    
+      return () => {
+        unsubscribe();
+      };
+    }, []);
+   
+    function formatDate(timestamp) {
+        const date = new Date(timestamp.seconds * 1000);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${day}/${month} - ${hours}:${minutes}`;
+      }
+      async function loadDataFromStorage() {
+        const eventosData = await AsyncStorage.getItem('eventos');
+        const agendaData = await AsyncStorage.getItem('agenda');
+        const usernameData = await AsyncStorage.getItem('username');
+      
+        if (eventosData !== null) {
+          setEventos(JSON.parse(eventosData));
+            
+        }
+      
+        if (agendaData !== null) {
+          setAgenda(JSON.parse(agendaData));
+          
+          
+        }
+      
+        if (usernameData !== null) {
+          setUsername(usernameData);
+        }
+        
+        
+      }
+    useEffect(() => {
+        const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+          setIsConnected(state.isConnected);
+          console.log(isConnected)
+        });
+        
+        loadDataFromStorage();
+        
+        if (isConnected && !loaded) {
+          setLoaded(true);
+      
+          eventosRef.get().then((querySnapshot) => {
+            const eventos = [];
+      
+            querySnapshot.forEach((documentSnapshot) => {
+              eventos.push(documentSnapshot.data());
+            });
+      
+            if (eventos.length > 0) {
+              setEventos(eventos);
+              AsyncStorage.setItem('eventos', JSON.stringify(eventos));
+            }
+          });
+      
+          const agenda = [];
+          agendaRef.get()
+  .then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
+      const data = doc.data().data;
+      const titulo = doc.data().titulo;
+      agenda.push({ data: formatDate(data), titulo });
     });
-    setEventos(eventos);
+    if (agenda.length > 0) {
+    setAgenda(agenda);
+    AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+    }
+  })
+  .catch((error) => {
+    console.error('Error getting agenda documents:', error);
   });
-          userRef.get().then((doc) => {
-            if (doc.exists) {
+          userRef
+            .get()
+            .then((doc) => {
+              if (doc.exists) {
                 const username = doc.data().nome;
                 setUsername(username);
+                AsyncStorage.setItem('username', username);
+              } else {
+                console.log('No user document found with ID:', uid);
+              }
+            })
+            .catch((error) => {
+              console.error('Error getting user document:', error);
+            });
+            agendaRef.onSnapshot((querySnapshot) => {
+                const agenda = [];
+                querySnapshot.forEach((doc) => {
+                  const data = doc.data().data;
+                  const titulo = doc.data().titulo;
+                  agenda.push({ data: formatDate(data), titulo });
+                });
+                if (agenda.length > 0) {
+                  setAgenda(agenda);
+                  AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+                }
+              });
+              eventosRef.onSnapshot((querySnapshot) => {
+                const eventos = [];
+                querySnapshot.forEach((documentSnapshot) => {
+                    eventos.push(documentSnapshot.data());
+                  });
             
-            } else {
-            console.log('No user document found with ID:', uid);
-            }
-        }).catch((error) => {
-            console.error('Error getting user document:', error);
-        });
-        console.log("database loaded")
-    }
+                  if (eventos.length > 0) {
+                    setEventos(eventos);
+                    AsyncStorage.setItem('eventos', JSON.stringify(eventos));
+                  }
+                });
+          console.log('database loaded');
+        }
+        async function logEventosData(){
+            const eventosData = await AsyncStorage.getItem('agenda');
+            console.log(eventosData)
+        }
+        logEventosData();
+        return () => {
+          unsubscribeNetInfo();
+        };
+      }, [loaded, isConnected]);
+         
+
+    
     const screens = [
         
         {
@@ -68,33 +180,8 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
         },
     ]
     
-    const events = [
-        {
-            title:"Corta mato 2022/2023",
-            description:"Inscreve te no corta mato",
-            image:require("../assets/CORTAMATO22.jpg"),
-        },
-        {
-            title:"Palestra da RTP",
-            description:"Não vamos ter aulas pra ter uma palestra",
-            image:require("../assets/CORTAMATO22.jpg")
-        }
-    ]
-    const agenda = [
-        {
-            title:"Teste de matemática",
-            date:"31 de janeiro",
-            time:"13:55",
-            color:"#C7254E"
-        },
-        {
-            title:"Teste de Programação",
-            date:"15 de fevereiro",
-            time:"8:30",
-            color:"#337AB7"
-        }
-
-    ]
+    
+   
     const deleteItem = (name, key) => {
         setItem((prevItem) => {
             return prevItem.filter(item => item.key != key)
@@ -117,7 +204,9 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     
 
     return (
+    
         <View style={{flex:1}}>
+            
             <Modal
                 animationType="fade"
                 transparent={false}
@@ -126,8 +215,9 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                     setModalVisible(!modalVisible);
                 }}
             >
-
+                    
                 <View style={[styles.QuickNavModal, {flex:1}]}>
+                    
                 <FlatList
                         showsHorizontalScrollIndicator={false} 
                         numColumns={5}
@@ -144,6 +234,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                     </Pressable>
                 </View>
             </Modal>
+            
             <Header></Header>
             <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.container}>
@@ -175,7 +266,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                         renderItem={({ item }) => (
                             <EventItem eventos={item}/>
                         )} />
-                        <Text style={global.h2}>A tua agenda</Text>
+                        <Text style={[{marginTop:10},global.h2]}>Agenda</Text>
                 <FlatList
                         
                         showsHorizontalScrollIndicator={false} 
@@ -185,7 +276,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                         renderItem={({ item }) => (
                             <AgendaItem agenda={item}/>
                         )} />
-                <TouchableOpacity onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
+                <TouchableOpacity style={{marginTop:30}} onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
 
                 
 
@@ -211,7 +302,7 @@ const styles = StyleSheet.create({
         flexGrow:1,
     },
     eventos: {
-        marginTop: 10,
+        
         opacity: 1,
         alignItems: 'center'
 

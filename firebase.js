@@ -25,9 +25,6 @@ else{
 }
 const auth = firebase.auth();
 const database = firebase.firestore();
-database.enablePersistence()
-  .catch(err => {
-    console.error('Error enabling Firestore persistence:', err);
-  });
+
 export {database};
 export {auth};

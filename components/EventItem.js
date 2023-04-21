@@ -18,11 +18,11 @@ export default function EventItem({eventos}) {
 const styles = StyleSheet.create({
     content: {
 
-        height: 97,
+        height: 80,
         backgroundColor: 'white',
         borderRadius: 10,
         marginRight: 17,
-        marginTop: 50,
+        marginTop: 60,
         zIndex: 2,
         paddingHorizontal: 9,
         paddingVertical: 6
@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         height: 70,
         width: 290,
+        marginTop:10,
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,
         zIndex: 1
