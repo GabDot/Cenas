@@ -8,9 +8,11 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Home from './screens/home';
 import User from './screens/user';
 import Login from './screens/login';
+import Agenda from './screens/agenda';
 import * as SplashScreen from "expo-splash-screen"
-import { useEffect, useState } from 'react';
+import { useEffect, useState, createContext } from 'react';
 import { useFonts } from 'expo-font'
+import AgendaScreen from './screens/agenda';
 
 
 export default function App() {
@@ -42,7 +44,6 @@ export default function App() {
   return (
     <>
     <StatusBar style='light' backgroundColor='#9A9DBE'></StatusBar>
-    
 
     <NavigationContainer>
     {isLoggedIn ? (
@@ -74,11 +75,11 @@ export default function App() {
               <MaterialCommunityIcons name="account-circle" color={color} size={38} />
             ),
           }} />
-          <Tab.Screen name="Ementa" component={User}
+          <Tab.Screen name="Agenda" component={AgendaScreen}
           options={{
             
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="silverware" color={color} size={38} />
+              <MaterialCommunityIcons name="calendar" color={color} size={38} />
             ),
           }} />
           <Tab.Screen name="Mais" component={User}

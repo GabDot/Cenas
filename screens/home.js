@@ -18,12 +18,16 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     const [item, setItem] = useState([]);
     const [eventos, setEventos] = useState([]);
     const [agenda, setAgenda] = useState([]);
+    const [ementa, setEmenta] = useState([]);
+    const [cantinaHorario,setCantinaHorario] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const uid = auth.currentUser.uid
     const [username, setUsername] = useState('');
     const userRef = database.collection('users').doc(uid);
     const eventosRef = database.collection('eventos');
     const agendaRef = database.collection('users').doc(uid).collection('agenda');
+    const ementaRef = database.collection('ementa');
+    const cantinaHorarioRef = database.collection('cantinahorario');
     const [isConnected, setIsConnected] = useState(true);
     const [loaded, setLoaded] = useState(false);
     
@@ -39,75 +43,97 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     }, []);
    
     function formatDate(timestamp) {
-        const date = new Date(timestamp.seconds * 1000);
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${day}/${month} - ${hours}:${minutes}`;
-      }
+      const date = new Date(timestamp.seconds * 1000);
+      const year = date.getFullYear().toString();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');     
+      return `${day}/${month}/${year}`;
+    }
       async function loadDataFromStorage() {
         const eventosData = await AsyncStorage.getItem('eventos');
         const agendaData = await AsyncStorage.getItem('agenda');
         const usernameData = await AsyncStorage.getItem('username');
+        const ementaData = await AsyncStorage.getItem('ementa');
       
         if (eventosData !== null) {
-          setEventos(JSON.parse(eventosData));
-            
+          setEventos(JSON.parse(eventosData));           
         }
-      
         if (agendaData !== null) {
           setAgenda(JSON.parse(agendaData));
-          
-          
         }
-      
         if (usernameData !== null) {
           setUsername(usernameData);
         }
-        
-        
+        if (ementaData !== null) {
+          setEmenta(JSON.parse(ementaData));
+        }
       }
     useEffect(() => {
         const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
           setIsConnected(state.isConnected);
-          console.log(isConnected)
+          
         });
         
         loadDataFromStorage();
         
         if (isConnected && !loaded) {
           setLoaded(true);
-      
+          cantinaHorarioRef.get().then((querySnapshot) => {
+            const cantinaHorario = [];
+            querySnapshot.forEach((documentSnapshot) => {
+              cantinaHorario.push(documentSnapshot.data());
+            });
+            if (cantinaHorario.length > 0) {
+              setCantinaHorario(cantinaHorario);
+              console.log(cantinaHorario)
+              AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
+            }
+          });
+          
           eventosRef.get().then((querySnapshot) => {
             const eventos = [];
-      
             querySnapshot.forEach((documentSnapshot) => {
               eventos.push(documentSnapshot.data());
             });
-      
             if (eventos.length > 0) {
               setEventos(eventos);
+              
               AsyncStorage.setItem('eventos', JSON.stringify(eventos));
+            }
+          });
+          ementaRef.get().then((querySnapshot) => {
+            const ementa = [];
+      
+            querySnapshot.forEach((documentSnapshot) => {
+              const dia = documentSnapshot.data().dia;
+              const formattedDia = formatDate(dia);
+              const restOfData = documentSnapshot.data();
+              delete restOfData.dia;
+              ementa.push({ dia: formattedDia, ...restOfData });
+          });
+            
+            if (ementa.length > 0) {
+              setEmenta(ementa);
+              AsyncStorage.setItem('ementa', JSON.stringify(ementa));
             }
           });
       
           const agenda = [];
           agendaRef.get()
-  .then((querySnapshot) => {
-    querySnapshot.forEach((doc) => {
-      const data = doc.data().data;
-      const titulo = doc.data().titulo;
-      agenda.push({ data: formatDate(data), titulo });
-    });
-    if (agenda.length > 0) {
-    setAgenda(agenda);
-    AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-    }
-  })
-  .catch((error) => {
-    console.error('Error getting agenda documents:', error);
-  });
+          .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              const data = doc.data().data;
+              const titulo = doc.data().titulo;
+              agenda.push({ data: formatDate(data), titulo });
+            });
+            if (agenda.length > 0) {
+            setAgenda(agenda);
+            AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+            }
+          })
+          .catch((error) => {
+            console.error('Error getting agenda documents:', error);
+          });
           userRef
             .get()
             .then((doc) => {
@@ -147,11 +173,8 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                 });
           console.log('database loaded');
         }
-        async function logEventosData(){
-            const eventosData = await AsyncStorage.getItem('agenda');
-            console.log(eventosData)
-        }
-        logEventosData();
+        
+        
         return () => {
           unsubscribeNetInfo();
         };
@@ -207,33 +230,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     
         <View style={{flex:1}}>
             
-            <Modal
-                animationType="fade"
-                transparent={false}
-                visible={modalVisible}
-                onRequestClose={() => {
-                    setModalVisible(!modalVisible);
-                }}
-            >
-                    
-                <View style={[styles.QuickNavModal, {flex:1}]}>
-                    
-                <FlatList
-                        showsHorizontalScrollIndicator={false} 
-                        numColumns={5}
-                        data={screens}
-                        renderItem={({ item }) => (
-                            <SelectableQuickNav screens={item} submitHandler={submitHandler} setModalVisible={setModalVisible} modalVisible={modalVisible} />
-                        )}
-                    />
-                    <Pressable
-                        style={[styles.button, styles.buttonClose]}
-                        onPress={() => { setModalVisible(!modalVisible) }}
-                    >
-                        <MaterialCommunityIcons name='window-close' color='#A4A4A4' size={50} />
-                    </Pressable>
-                </View>
-            </Modal>
+           
             
             <Header></Header>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -243,30 +240,8 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                     <Text style={global.h1}>Bem vindo,</Text>
                     <Text style={global.p}>{username}</Text>
                 </View>
-                <Text style={global.h2}>Navegação rápida</Text>
-                <ScrollView showsHorizontalScrollIndicator={false} horizontal={true} contentContainerStyle={styles.QuickNav}>
-                    <FlatList
-                        
-                        contentContainerStyle={{ flexDirection: "row" }}
-                        data={item}
-                        
-                        renderItem={({ item }) => (
-                            <QuickNavItem item={item} deleteItem={deleteItem} />
-                        )} />
-                    <TouchableOpacity style={{ marginBottom: 16 }} onPress={() => setModalVisible(true)}><MaterialCommunityIcons name='plus' size={40} color='gray'></MaterialCommunityIcons></TouchableOpacity>
-
-                </ScrollView>
-                <Text style={global.h2}>Eventos</Text>
-                <FlatList
-                        
-                        showsHorizontalScrollIndicator={false} 
-                        horizontal={true} 
-                        contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
-                        data={eventos}
-                        renderItem={({ item }) => (
-                            <EventItem eventos={item}/>
-                        )} />
-                        <Text style={[{marginTop:10},global.h2]}>Agenda</Text>
+                
+                <Text style={[{marginTop:10},global.h2]}>Agenda</Text>
                 <FlatList
                         
                         showsHorizontalScrollIndicator={false} 
@@ -276,6 +251,27 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                         renderItem={({ item }) => (
                             <AgendaItem agenda={item}/>
                         )} />
+                <Text style={[{marginTop:30},global.h2]}>Eventos</Text>
+                <FlatList
+                        
+                        showsHorizontalScrollIndicator={false} 
+                        horizontal={true} 
+                        contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
+                        data={eventos}
+                        renderItem={({ item }) => (
+                            <EventItem eventos={item}/>
+                        )} />
+                <View style={[{marginTop:30},styles.ementaContainer]}>
+                {ementa.map((item, index) => (
+                  <View key={item.dia} style={styles.ementaItem}>
+                    
+                    <Text style={[{color:'white',fontSize:18}, global.p]}>
+                    <Text style={{ fontWeight: 'bold', color: 'white',fontSize:18 }}>{item.pratoC}</Text>
+                  </Text>
+                  
+                  </View>
+                ))}
+              </View>
                 <TouchableOpacity style={{marginTop:30}} onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
 
                 
@@ -318,5 +314,21 @@ const styles = StyleSheet.create({
         alignSelf:'center'
         
         
+    },
+    ementaItem:{
+        height: 75,
+        width:'100%',
+        backgroundColor: '#D0247A',
+        justifyContent:'center',
+        borderRadius: 10,
+        marginTop: 10,
+        zIndex: 2,
+        paddingHorizontal: 9,
+        paddingVertical: 6,
+    },
+    ementaContainer:{
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
     }
 });
