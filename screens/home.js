@@ -23,9 +23,10 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     const [modalVisible, setModalVisible] = useState(false);
     const uid = auth.currentUser.uid
     const [username, setUsername] = useState('');
+    const [turma,setTurma] = useState('');
     const userRef = database.collection('users').doc(uid);
     const eventosRef = database.collection('eventos');
-    const agendaRef = database.collection('users').doc(uid).collection('agenda');
+    const agendaRef = database.collection('agenda');
     const ementaRef = database.collection('ementa');
     const cantinaHorarioRef = database.collection('cantinahorario');
     const [isConnected, setIsConnected] = useState(true);
@@ -85,7 +86,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
             });
             if (cantinaHorario.length > 0) {
               setCantinaHorario(cantinaHorario);
-              console.log(cantinaHorario)
+              
               AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
             }
           });
@@ -118,59 +119,116 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
             }
           });
       
-          const agenda = [];
-          agendaRef.get()
-          .then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-              const data = doc.data().data;
-              const titulo = doc.data().titulo;
-              agenda.push({ data: formatDate(data), titulo });
-            });
-            if (agenda.length > 0) {
-            setAgenda(agenda);
-            AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+         
+          userRef
+          .get()
+          .then((doc) => {
+            if (doc.exists) {
+              const username = doc.data().nome;
+              const turma = doc.data().turma;
+              setTurma(turma)
+              setUsername(username);
+              AsyncStorage.setItem('turma', turma);
+              AsyncStorage.setItem('username', username);
+              if (turma) {
+                agendaRef.doc(turma).collection('agenda')
+                  .get()
+                  .then((agendaDoc) => {
+                    const agenda = []
+                    agendaDoc.forEach((document) => {
+                      const titulo = document.data().titulo;
+                      const data = document.data().data;
+                      console.log(titulo)
+                      agenda.push({ data: formatDate(data), titulo });
+                    });
+                    setAgenda(agenda);
+                    
+                    if (agenda.length > 0) {
+                      AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Error getting agenda document:', error);
+                  });
+              }
+            } else {
+              console.log('No user document found with ID:', uid);
             }
           })
           .catch((error) => {
-            console.error('Error getting agenda documents:', error);
+            console.error('Error getting user document:', error);
           });
-          userRef
-            .get()
-            .then((doc) => {
-              if (doc.exists) {
-                const username = doc.data().nome;
-                setUsername(username);
-                AsyncStorage.setItem('username', username);
-              } else {
-                console.log('No user document found with ID:', uid);
-              }
-            })
-            .catch((error) => {
-              console.error('Error getting user document:', error);
+        
+          cantinaHorarioRef.onSnapshot((querySnapshot) => {
+            const cantinaHorario = [];
+            querySnapshot.forEach((documentSnapshot) => {
+              cantinaHorario.push(documentSnapshot.data());
             });
-            agendaRef.onSnapshot((querySnapshot) => {
-                const agenda = [];
-                querySnapshot.forEach((doc) => {
-                  const data = doc.data().data;
-                  const titulo = doc.data().titulo;
-                  agenda.push({ data: formatDate(data), titulo });
-                });
-                if (agenda.length > 0) {
-                  setAgenda(agenda);
-                  AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-                }
-              });
-              eventosRef.onSnapshot((querySnapshot) => {
-                const eventos = [];
-                querySnapshot.forEach((documentSnapshot) => {
-                    eventos.push(documentSnapshot.data());
+            if (cantinaHorario.length > 0) {
+              setCantinaHorario(cantinaHorario);
+              AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
+            }
+          });
+          
+          eventosRef.onSnapshot((querySnapshot) => {
+            const eventos = [];
+            querySnapshot.forEach((documentSnapshot) => {
+              eventos.push(documentSnapshot.data());
+            });
+            if (eventos.length > 0) {
+              setEventos(eventos);
+              AsyncStorage.setItem('eventos', JSON.stringify(eventos));
+            }
+          });
+          
+          ementaRef.onSnapshot((querySnapshot) => {
+            const ementa = [];
+            querySnapshot.forEach((documentSnapshot) => {
+              const dia = documentSnapshot.data().dia;
+              const formattedDia = formatDate(dia);
+              const restOfData = documentSnapshot.data();
+              delete restOfData.dia;
+              ementa.push({ dia: formattedDia, ...restOfData });
+            });
+            if (ementa.length > 0) {
+              setEmenta(ementa);
+              AsyncStorage.setItem('ementa', JSON.stringify(ementa));
+            }
+          });
+          
+          userRef.onSnapshot((doc) => {
+            if (doc.exists) {
+              const username = doc.data().nome;
+              const turma = doc.data().turma;
+              setTurma(turma);
+              setUsername(username);
+              AsyncStorage.setItem('turma', turma);
+              AsyncStorage.setItem('username', username);
+              if (turma) {
+                agendaRef.doc(turma).collection('agenda')
+                  .onSnapshot((agendaDoc) => {
+                    const agenda = []
+                    agendaDoc.forEach((document) => {
+                      const titulo = document.data().titulo;
+                      const data = document.data().data;
+                      console.log(titulo)
+                      agenda.push({ data: formatDate(data), titulo });
+                    });
+                    setAgenda(agenda);
+                    if (agenda.length > 0) {
+                      AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Error getting agenda document:', error);
                   });
-            
-                  if (eventos.length > 0) {
-                    setEventos(eventos);
-                    AsyncStorage.setItem('eventos', JSON.stringify(eventos));
-                  }
-                });
+              }
+            } else {
+              console.log('No user document found with ID:', uid);
+            }
+          });
+          
+
           console.log('database loaded');
         }
         

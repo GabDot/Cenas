@@ -12,7 +12,8 @@ const AgendaScreen = React.memo(() => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const uid = auth.currentUser.uid
-  const agendaRef = database.collection('users').doc(uid).collection('agenda');
+  const turma = auth.currentUser.turma
+  const agendaRef = database.collection('agenda').doc(turma);
   const [eventDates, setEventDates] = useState([]);
   const eventosRef = database.collection('eventos');
   const [agenda, setAgenda] = useState([]);
@@ -54,20 +55,23 @@ const noEventsMessage = selectedDate === today
     
     const today = new Date();
     setSelectedDate(today.toISOString().split('T')[0]);
-    agendaRef.onSnapshot({ source: 'server' },(querySnapshot) => {
-      const agenda = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data().data;
-        const titulo = doc.data().titulo;
-        agenda.push({ data: formatDate(data), titulo });
-      });
-      if (agenda.length > 0) {
-        setAgenda(agenda);
-        AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-        loadDataFromStorage();
-        
-      }
-    });
+    
+    
+   
+            agendaRef.onSnapshot((doc) => {
+              if (doc.exists) {
+                const titulo = doc.data().titulo;
+                const data = doc.data().data;
+                agenda.push({ data: formatDate(data), titulo });
+                if (agenda.length > 0) {
+                  setAgenda(agenda);
+                  AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+                  loadDataFromStorage();
+                  
+                }
+              } 
+            });
+          
   }, []);
 
   useEffect(() => {
