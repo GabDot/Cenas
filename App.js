@@ -13,6 +13,9 @@ import * as SplashScreen from "expo-splash-screen"
 import { useEffect, useState, createContext } from 'react';
 import { useFonts } from 'expo-font'
 import AgendaScreen from './screens/agenda';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreAllLogs();
 
 
 export default function App() {

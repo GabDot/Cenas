@@ -28,8 +28,10 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
     const eventosRef = database.collection('eventos');
     const agendaRef = database.collection('agenda');
     const ementaRef = database.collection('ementa');
+    const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
+    const [agendaP,setAgendaP] = useState([])
     const cantinaHorarioRef = database.collection('cantinahorario');
-    const [isConnected, setIsConnected] = useState(true);
+    const [isConnected, setIsConnected] = useState();
     const [loaded, setLoaded] = useState(false);
     
 
@@ -48,19 +50,21 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
       const year = date.getFullYear().toString();
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const day = date.getDate().toString().padStart(2, '0');     
-      return `${day}/${month}/${year}`;
+      return `${year}-${month}-${day}`;
     }
       async function loadDataFromStorage() {
         const eventosData = await AsyncStorage.getItem('eventos');
         const agendaData = await AsyncStorage.getItem('agenda');
         const usernameData = await AsyncStorage.getItem('username');
         const ementaData = await AsyncStorage.getItem('ementa');
-      
+        const agendaPData = await AsyncStorage.getItem('agendaP')
+      console.log(agendaPData);
         if (eventosData !== null) {
           setEventos(JSON.parse(eventosData));           
         }
         if (agendaData !== null) {
           setAgenda(JSON.parse(agendaData));
+          
         }
         if (usernameData !== null) {
           setUsername(usernameData);
@@ -68,16 +72,21 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
         if (ementaData !== null) {
           setEmenta(JSON.parse(ementaData));
         }
+        if (agendaPData !== null) {
+          setAgendaP(JSON.parse(agendaPData));
+        }
+        
       }
     useEffect(() => {
         const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
           setIsConnected(state.isConnected);
           
         });
-        
+        console.log(isConnected)
         loadDataFromStorage();
-        
+       
         if (isConnected && !loaded) {
+          
           setLoaded(true);
           cantinaHorarioRef.get().then((querySnapshot) => {
             const cantinaHorario = [];
@@ -138,13 +147,16 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                     agendaDoc.forEach((document) => {
                       const titulo = document.data().titulo;
                       const data = document.data().data;
-                      console.log(titulo)
+                      
                       agenda.push({ data: formatDate(data), titulo });
                     });
                     setAgenda(agenda);
                     
                     if (agenda.length > 0) {
                       AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+                    }else {
+                      setAgenda([]);
+                      AsyncStorage.removeItem('agenda');
                     }
                   })
                   .catch((error) => {
@@ -158,7 +170,54 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
           .catch((error) => {
             console.error('Error getting user document:', error);
           });
-        
+          agendaPRef
+          .get()
+          .then((agendaDoc) => {
+            const agendaP = []
+            agendaDoc.forEach((document) => {
+              const titulo = document.data().titulo;
+              const data = document.data().data;
+              const id = document.data().id;
+              
+              agendaP.push({ data: data, titulo, id });
+            });
+            setAgendaP(agendaP);
+            
+            if (agendaP.length > 0) {
+              console.log(agendaP.length)
+              AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
+            }else{
+              console.log(agendaP.length)
+              setAgendaP([]);
+            AsyncStorage.removeItem('agendaP');
+            }
+          })
+          .catch((error) => {
+                    console.error('Error getting agenda document:', error);
+                  });
+          agendaPRef
+          .onSnapshot((agendaDoc) => {
+            const agendaP = []
+            agendaDoc.forEach((document) => {
+              const titulo = document.data().titulo;
+              const data = document.data().data;
+              const id = document.data().id;
+              agendaP.push({ data: data, titulo, id });
+            });
+            setAgendaP(agendaP);
+            
+            if (agendaP.length > 0) {
+              console.log(agendaP.length)
+              AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
+            }
+            else{
+              console.log(agendaP.length)
+              console.log("trigger 2")
+              setAgendaP([]);
+              AsyncStorage.removeItem('agendaP');
+            }
+          })
+         
           cantinaHorarioRef.onSnapshot((querySnapshot) => {
             const cantinaHorario = [];
             querySnapshot.forEach((documentSnapshot) => {
@@ -211,17 +270,18 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                     agendaDoc.forEach((document) => {
                       const titulo = document.data().titulo;
                       const data = document.data().data;
-                      console.log(titulo)
+                      
                       agenda.push({ data: formatDate(data), titulo });
                     });
                     setAgenda(agenda);
                     if (agenda.length > 0) {
                       AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+                    }else {
+                      setAgenda([]);
+                      AsyncStorage.removeItem('agenda');
                     }
                   })
-                  .catch((error) => {
-                    console.error('Error getting agenda document:', error);
-                  });
+                  
               }
             } else {
               console.log('No user document found with ID:', uid);
@@ -232,7 +292,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
           console.log('database loaded');
         }
         
-        
+       
         return () => {
           unsubscribeNetInfo();
         };
@@ -283,6 +343,7 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
         setIsLoggedIn(false)
     }
     
+    
 
     return (
     
@@ -300,25 +361,31 @@ export default function Home({navigation, isLoggedIn, setIsLoggedIn}) {
                 </View>
                 
                 <Text style={[{marginTop:10},global.h2]}>Agenda</Text>
-                <FlatList
+                {agenda.length === 0 && agendaP.length === 0 ?
+                <Text style={[{marginTop:10},global.p]}>Não tens itens na agenda</Text>
+                
+                :<FlatList
                         
-                        showsHorizontalScrollIndicator={false} 
-                        horizontal={true} 
-                        contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
-                        data={agenda}
-                        renderItem={({ item }) => (
-                            <AgendaItem agenda={item}/>
-                        )} />
-                <Text style={[{marginTop:30},global.h2]}>Eventos</Text>
-                <FlatList
-                        
-                        showsHorizontalScrollIndicator={false} 
-                        horizontal={true} 
-                        contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
-                        data={eventos}
-                        renderItem={({ item }) => (
-                            <EventItem eventos={item}/>
-                        )} />
+                showsHorizontalScrollIndicator={false} 
+                horizontal={true} 
+                contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
+                data={[...agenda,...agendaP]}
+                renderItem={({ item }) => (
+                    <AgendaItem agenda={item}/>
+                )} />
+              }
+        <Text style={[{marginTop:30},global.h2]}>Eventos</Text>
+        <FlatList
+                
+                showsHorizontalScrollIndicator={false} 
+                horizontal={true} 
+                contentContainerStyle={[styles.eventos,{ flexDirection: "row" }]}
+                data={eventos}
+                renderItem={({ item }) => (
+                    <EventItem eventos={item}/>
+                )} />
+                
+                
                 <View style={[{marginTop:30},styles.ementaContainer]}>
                 {ementa.map((item, index) => (
                   <View key={item.dia} style={styles.ementaItem}>

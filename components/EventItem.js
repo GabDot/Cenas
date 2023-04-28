@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderRadius: 10,
         marginRight: 17,
-        marginTop: 110,
+        marginTop: 90,
         zIndex: 2,
         paddingHorizontal: 9,
         paddingVertical: 6
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     },
     image: {
         position: 'absolute',
-        height: 120,
+        height: 100,
         width: 290,
         marginTop:10,
         borderTopLeftRadius: 10,

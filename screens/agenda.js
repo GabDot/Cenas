@@ -7,76 +7,135 @@ import { global } from "../styles/globals";
 import { database } from '../firebase';
 import { auth } from '../firebase';
 import moment from 'moment/moment';
+import EventPList from '../components/EventPList';
+import EventList from '../components/EventList';
+import NetInfo from '@react-native-community/netinfo';
 
 const AgendaScreen = React.memo(() => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const uid = auth.currentUser.uid
-  const turma = auth.currentUser.turma
-  const agendaRef = database.collection('agenda').doc(turma);
+  const [turma, setTurma] = useState('');
+  const agendaRef = database.collection('agenda');
   const [eventDates, setEventDates] = useState([]);
+  const [eventPDates, setPEventDates] = useState([]);
   const eventosRef = database.collection('eventos');
   const [agenda, setAgenda] = useState([]);
+  const [newEvent,setNewEvent] = useState('');
   const today = new Date().toISOString().split('T')[0]; // get today's date in ISO format
   const modalPosition = React.useRef(new Animated.Value(0)).current;
+  const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
+  const [isConnected, setIsConnected] = useState();
+    const [loaded, setLoaded] = useState(false)
   function formatDate(timestamp) {
     const date = new Date(timestamp.seconds * 1000);
     const year = date.getFullYear().toString();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');     
-    return `${day}/${month}/${year}`;
+    return `${year}-${month}-${day}`;
   }
 const noEventsMessage = selectedDate === today
   ? 'Não tens nada agendado para hoje'
   : 'Não tens nada agendado para este dia';
+  const noEventsMessage2 = selectedDate === today
+  ? 'Não tens nada pessoal agendado para hoje'
+  : 'Não tens nada pessoal agendado para este dia';
   async function loadDataFromStorage() {
     const agendaData = await AsyncStorage.getItem('agenda');
-    
+    const turmaData = await AsyncStorage.getItem('turma');
+    const agendaPData = await AsyncStorage.getItem('agendaP');
+    setTurma(turmaData);
+    console.log(agendaPData)
     if (agendaData !== null) {
       const parsedData = JSON.parse(agendaData).map((event) => {
-        const [day, month, year] = event.data.split('/');
-        const localDate = new Date(year, month - 1, day,0,0,0);
+        const [year,month,day] = event.data.split('-');
+        const localDate = new Date(year, month - 1,day ,0,0,0);
         const offset = localDate.getTimezoneOffset() * 60000; // convert minutes to milliseconds
         const utcDate = new Date(localDate.getTime() - offset);
-        
         return {
           ...event,
           data: utcDate.toISOString().split('T')[0]
         };
       });
       setEventDates(parsedData);
-     
+      
       
     }
-  }
   
+    if (agendaPData !== null) {
+      const parsedPData = JSON.parse(agendaPData);
+      console.log(agendaPData)
+      setPEventDates(parsedPData);
+      
+    }
+   
+  }
   useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsConnected(state.isConnected);
+    });
+  
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  useEffect(() => {
+    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+      console.log(isConnected);
+      setIsConnected(state.isConnected);
+      
+    });
     loadDataFromStorage();
     
     const today = new Date();
     setSelectedDate(today.toISOString().split('T')[0]);
     
-    
-   
-            agendaRef.onSnapshot((doc) => {
-              if (doc.exists) {
-                const titulo = doc.data().titulo;
-                const data = doc.data().data;
-                agenda.push({ data: formatDate(data), titulo });
-                if (agenda.length > 0) {
-                  setAgenda(agenda);
-                  AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-                  loadDataFromStorage();
-                  
-                }
-              } 
-            });
+    if (isConnected ) {
+      
+    if (turma) {
+      agendaRef.doc(turma).collection('agenda')
+        .onSnapshot((agendaDoc) => {
+          const agenda = []
+          console.log("mudou")
+          agendaDoc.forEach((document) => {
+            const titulo = document.data().titulo;
+            const data = document.data().data;
+            console.log(titulo)
+            agenda.push({ data: formatDate(data), titulo });
+          });
+          setEventDates(agenda);
           
-  }, []);
+          if (agenda.length > 0) {
+             AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+             
+          }
+          
+        })
+      }
+      agendaPRef
+          .onSnapshot((agendaDoc) => {
+            const agendaP = []
+            agendaDoc.forEach((document) => {
+              const titulo = document.data().titulo;
+              const data = document.data().data;
+              const id = document.data().id;
+              agendaP.push({ data: data, titulo, id });
+            });
+            setPEventDates(agendaP);
+            
+            if (agendaP.length > 0) {
+              AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
+              
+            }
+            
+          })
+        }
+        return () => {
+          unsubscribeNetInfo();
+        };
+  }, [isConnected]);
 
-  useEffect(() => {
-    console.log(eventDates);
-  }, [eventDates]);
+  
 
   const onDayPress = useCallback((day) => {
     setSelectedDate(day.dateString);
@@ -111,39 +170,29 @@ const noEventsMessage = selectedDate === today
   const closeModal = () => {
     setIsModalVisible(false);
   };
-  const showAnimation = () => {
-    Animated.timing(modalPosition, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  };
-  const hideAnimation = () => {
-    Animated.timing(modalPosition, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => closeModal());
-  };
-  React.useEffect(() => {
-    if (isModalVisible) {
-      showAnimation();
-    } else {
-      hideAnimation();
-    }
-  }, [isModalVisible]);
+  
+  const submitEvent =  () => {
+    const eventPRef = agendaPRef.doc(); // create a new document reference with a random ID
+    const eventPData = {
+      titulo: newEvent,
+      data: selectedDate,
+      id: eventPRef.id // add the ID to the data object
+    };
+     eventPRef.set(eventPData); // add the data to the document
+  }
 
 
 LocaleConfig.defaultLocale = 'pt'
 const markedDates = useMemo(() => {
-  return eventDates.reduce((obj, date) => {
+  const allDates = [...eventDates, ...eventPDates];
+  return allDates.reduce((obj, date) => {
     obj[date.data] = {
       selected: true,
       title: date.titulo,
     };
     return obj;
   }, {});
-}, [eventDates]);
+}, [eventDates, eventPDates]);
 const currentDate = moment().format('YYYY-MM-DD');
 const currentYear = moment().format('YYYY');
 const lastYear = moment().subtract(1, 'year').format('YYYY');
@@ -181,12 +230,15 @@ const disabledMonths = {};
     <View style={styles.modalContent}>
     <TextInput
       style={styles.input}
-      placeholder="Event Title"
-      /*onChangeText={text => setTitulo(text)}
-      value={titulo}*/
+      placeholder="Titulo do evento"
+      onChangeText={text => setNewEvent(text)}
+      value={newEvent}
     />
-      <TouchableOpacity style={styles.submitButton}/*onPress={handleSubmit}*/>
-      <Text style={styles.submitButtonText}>Save</Text>
+      <TouchableOpacity style={styles.submitButton} onPress={() => {
+  submitEvent();
+  closeModal();
+}}>
+      <Text style={styles.submitButtonText} >Save</Text>
     </TouchableOpacity>
     <TouchableOpacity onPress={closeModal}>
       <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -216,21 +268,19 @@ const disabledMonths = {};
         }}
       />
       
-      <View style={styles.infoContainer}>
-    {eventDates.filter(event => event.data === selectedDate).length > 0 ? (
-      <Text style={[global.p]}>
-        {eventDates
-          .filter(event => event.data === selectedDate)
-          .map((event, index, array) => {
-            const separator = index === array.length - 1 ? '' : '\n\n';
-            return `${event.titulo}${separator}`;
-          })
-        }
-      </Text>
-    ) : (
-      <Text style={[global.p]}>{noEventsMessage}</Text>
-    )}
-  </View>
+      
+      <EventList
+  events={eventDates}
+  selectedDate={selectedDate}
+  noEventsMessage={noEventsMessage}
+/>
+<EventPList
+  events={eventPDates}
+  selectedDate={selectedDate}
+  noEventsMessage={noEventsMessage2}
+  />
+
+  
       <View style={styles.addEvent}>
       <TouchableOpacity style={styles.circleButton} onPress={openModal}>
     <Text style={styles.plus}>+</Text>
@@ -241,15 +291,7 @@ const disabledMonths = {};
   );
 });
 const styles = StyleSheet.create({
-  infoContainer:{
-    height:'auto',
-    marginTop:20,
-    marginLeft:20,
-    marginRight:20,
-    backgroundColor:'white',
-    borderRadius:10,
-    padding:20
-  },
+  
   addEvent: {
     position: 'absolute',
     bottom: 16,

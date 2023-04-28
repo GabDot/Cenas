@@ -18,13 +18,15 @@ const firebaseConfig = {
 let app;
 if(firebase.apps.length == 0){
     app = firebase.initializeApp(firebaseConfig);
+    
 
 }
 else{
     app=firebase.app();
 }
+firebase.firestore().settings({ experimentalAutoDetectLongPolling: true }); 
 const auth = firebase.auth();
 const database = firebase.firestore();
-
+firebase.firestore.setLogLevel("silent");
 export {database};
 export {auth};
