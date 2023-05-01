@@ -5,26 +5,28 @@ import { useState } from "react";
 import { global } from "../styles/globals";
 import moment from 'moment';
 
-export default function AgendaItem({agenda}) {
+
+export default function AgendaItem({ agenda, navigation }) {
     const date = moment(agenda.data, 'DD/MM - HH:mm');
     const isCloseToDate = date.diff(moment(), 'days') <= 1;
+    function navigateToTabScreen(tabName) {
+        navigation.navigate(tabName);
+    }
     return (
         <>
-        
-        
-        <Pressable style={styles.container}>
-            <View style={[
-          styles.color,
-          { backgroundColor: isCloseToDate ? '#C7254E' : '#337AB7' },
-        ]}>
-        
-        </View>
-            <View style={styles.content}>
-                <Text style={global.h2}>{agenda.titulo}</Text>
-                <Text style={global.p}>{agenda.data}</Text>
-                
-            </View>
-        </Pressable>
+            <Pressable style={styles.container} onPress={() => navigateToTabScreen('Agenda')}>
+                <View style={[
+                    styles.color,
+                    { backgroundColor: isCloseToDate ? '#C7254E' : '#337AB7' },
+                ]}>
+
+                </View>
+                <View style={styles.content}>
+                    <Text style={global.h2}>{agenda.titulo}</Text>
+                    <Text style={global.p}>{agenda.data}</Text>
+
+                </View>
+            </Pressable>
         </>
     )
 }
@@ -38,7 +40,7 @@ const styles = StyleSheet.create({
         zIndex: 2,
         paddingHorizontal: 9,
         paddingVertical: 6,
-        
+
     },
     container: {
         width: 309,
@@ -51,19 +53,14 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 10,
         zIndex: 1
     },
-    color:{
-        position:'absolute',
-        zIndex:-1,
+    color: {
+        position: 'absolute',
+        zIndex: -1,
         elevation: -1,
-        bottom:20,
-        width:290,
-        height:65,
-        borderTopRightRadius:10,
-        borderTopLeftRadius:10,
-
-
-
+        bottom: 20,
+        width: 290,
+        height: 65,
+        borderTopRightRadius: 10,
+        borderTopLeftRadius: 10,
     }
-
-
 })
