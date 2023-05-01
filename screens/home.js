@@ -394,7 +394,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
               contentContainerStyle={[styles.eventos, { flexDirection: "row" }]}
               data={[...agenda, ...agendaP].sort((a, b) => a.data.localeCompare(b.data))}
               renderItem={({ item }) => (
-                <AgendaItem agenda={item} />
+                <AgendaItem agenda={item} navigation={navigation} />
               )}
             />
           }
