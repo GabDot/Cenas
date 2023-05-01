@@ -14,7 +14,7 @@ export default function AgendaItem({ agenda, navigation }) {
     }
     return (
         <>
-            <Pressable style={styles.container} onPress={() => navigateToTabScreen('Agenda')}>
+            <Pressable style={styles.container} onPress={() => navigation.navigate('Agenda', { runFunction: true, selectedClickDate: agenda.data })}>
                 <View style={[
                     styles.color,
                     { backgroundColor: isCloseToDate ? '#C7254E' : '#337AB7' },

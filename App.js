@@ -78,13 +78,21 @@ export default function App() {
               <MaterialCommunityIcons name="account-circle" color={color} size={38} />
             ),
           }} />
-          <Tab.Screen name="Agenda" component={AgendaScreen}
-          options={{
-            
-            tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="calendar" color={color} size={38} />
-            ),
-          }} />
+           <Tab.Screen 
+            name="Agenda" 
+            component={AgendaScreen} 
+            options={{
+              tabBarIcon: ({ color }) => (
+                <MaterialCommunityIcons name="calendar" color={color} size={38} />
+              ),
+            }}
+            listeners={({ navigation }) => ({
+              tabPress: e => {
+                e.preventDefault();
+                navigation.navigate('Agenda', { runFunction: false });
+              },
+            })}
+            />
           <Tab.Screen name="Mais" component={User}
           options={{
             

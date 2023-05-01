@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput } from 'react-native';
 import { Calendar, LocaleConfig, CalendarList } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,9 +9,13 @@ import { auth } from '../firebase';
 import moment from 'moment/moment';
 import EventPList from '../components/EventPList';
 import EventList from '../components/EventList';
+import { useIsFocused } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 
-const AgendaScreen = React.memo(() => {
+const AgendaScreen = React.memo(({route}) => {
+  const isFocused = useIsFocused();
+
+  const {runFunction, selectedClickDate} = route.params
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModal2Visible, setIsModal2Visible] = useState(false);
@@ -41,6 +45,14 @@ const AgendaScreen = React.memo(() => {
   const noEventsMessage2 = selectedDate === today
     ? 'Não tens nada pessoal agendado para hoje'
     : 'Não tens nada pessoal agendado para este dia';
+
+    useEffect(() => {
+      if (isFocused && runFunction) {
+        console.log(runFunction)
+        
+        setSelectedDate(selectedClickDate)
+      }
+    }, [isFocused]);
   async function loadDataFromStorage() {
     const agendaData = await AsyncStorage.getItem('agenda');
     const turmaData = await AsyncStorage.getItem('turma');
@@ -71,6 +83,7 @@ const AgendaScreen = React.memo(() => {
     }
 
   }
+  
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected);
@@ -88,8 +101,8 @@ const AgendaScreen = React.memo(() => {
     });
     loadDataFromStorage();
 
-    const today = new Date();
-    setSelectedDate(today.toISOString().split('T')[0]);
+   
+    
 
     if (isConnected) {
 
@@ -135,7 +148,7 @@ const AgendaScreen = React.memo(() => {
       unsubscribeNetInfo();
     };
   }, [isConnected]);
-
+  
 
 
   const onDayPress = useCallback((day) => {
