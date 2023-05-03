@@ -178,6 +178,8 @@ const AgendaScreen = React.memo(({route}) => {
     today: 'Hoje',
 
   };
+  LocaleConfig.defaultLocale = 'pt';
+
   const openModal = () => {
     setIsModalVisible(true);
   };
@@ -332,6 +334,7 @@ const AgendaScreen = React.memo(({route}) => {
 
 
           }}
+          
         />
 
         <Text style={[global.h2, { marginLeft: 20, marginTop: 20, color: 'rgba(30, 30, 30, 0.63)' }]}>{selectedDate}</Text>

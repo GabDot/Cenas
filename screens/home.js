@@ -35,8 +35,10 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   const cantinaHorarioRef = database.collection('cantinahorario');
   const [isConnected, setIsConnected] = useState();
   const [loaded, setLoaded] = useState(false);
+  const today = new Date().toISOString().split('T')[0];
 
-
+ 
+ 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected);
@@ -60,7 +62,8 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     const usernameData = await AsyncStorage.getItem('username');
     const ementaData = await AsyncStorage.getItem('ementa');
     const agendaPData = await AsyncStorage.getItem('agendaP')
-    console.log(agendaPData);
+    
+    
     if (eventosData !== null) {
       setEventos(JSON.parse(eventosData));
     }
@@ -115,13 +118,13 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
       });
       ementaRef.get().then((querySnapshot) => {
         const ementa = [];
+        const data = '2023-05-01'
 
         querySnapshot.forEach((documentSnapshot) => {
-          const dia = documentSnapshot.data().dia;
-          const formattedDia = formatDate(dia);
-          const restOfData = documentSnapshot.data();
-          delete restOfData.dia;
-          ementa.push({ dia: formattedDia, ...restOfData });
+          
+          ementa.push(documentSnapshot.data() );
+          console.log(ementa[0][today]['meat'])
+          //console.log(ementa[0][data]['meat']);
         });
 
         if (ementa.length > 0) {
@@ -267,11 +270,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
       ementaRef.onSnapshot((querySnapshot) => {
         const ementa = [];
         querySnapshot.forEach((documentSnapshot) => {
-          const dia = documentSnapshot.data().dia;
-          const formattedDia = formatDate(dia);
-          const restOfData = documentSnapshot.data();
-          delete restOfData.dia;
-          ementa.push({ dia: formattedDia, ...restOfData });
+          ementa.push(documentSnapshot.data() );
         });
         if (ementa.length > 0) {
           setEmenta(ementa);
@@ -411,15 +410,15 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
 
 
           <View style={[{ marginTop: 30 }, styles.ementaContainer]}>
-            {ementa.map((item, index) => (
+           
               <View key={item.dia} style={styles.ementaItem}>
 
                 <Text style={[{ color: 'white', fontSize: 18 }, global.p]}>
-                  <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{item.pratoC}</Text>
+                  <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{/*ementa[0][today]['meat']*/}</Text>
                 </Text>
 
               </View>
-            ))}
+            
           </View>
           <TouchableOpacity style={{ marginTop: 30 }} onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
 

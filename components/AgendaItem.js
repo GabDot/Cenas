@@ -4,11 +4,17 @@ import { useNavigation } from '@react-navigation/native';
 import { useState } from "react";
 import { global } from "../styles/globals";
 import moment from 'moment';
+import 'moment/locale/pt-br'
 
 
 export default function AgendaItem({ agenda, navigation }) {
-    const date = moment(agenda.data, 'DD/MM - HH:mm');
-    const isCloseToDate = date.diff(moment(), 'days') <= 1;
+    
+
+    console.log(agenda.data);
+    const date = moment(agenda.data, 'YYYY-MM-DD');
+    moment.locale('pt-br');
+    const formattedDate = date.format('dddd, D [de] MMMM [de] YYYY');
+    const isCloseToDate = date.diff(moment(), 'days') < 1;
     function navigateToTabScreen(tabName) {
         navigation.navigate(tabName);
     }
@@ -23,7 +29,7 @@ export default function AgendaItem({ agenda, navigation }) {
                 </View>
                 <View style={styles.content}>
                     <Text style={global.h2}>{agenda.titulo}</Text>
-                    <Text style={global.p}>{agenda.data}</Text>
+                    <Text style={global.p}>{formattedDate}</Text>
 
                 </View>
             </Pressable>
