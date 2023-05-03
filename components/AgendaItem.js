@@ -10,7 +10,7 @@ import 'moment/locale/pt-br'
 export default function AgendaItem({ agenda, navigation }) {
     
 
-    console.log(agenda.data);
+    
     const date = moment(agenda.data, 'YYYY-MM-DD');
     moment.locale('pt-br');
     const formattedDate = date.format('dddd, D [de] MMMM [de] YYYY');
@@ -28,7 +28,7 @@ export default function AgendaItem({ agenda, navigation }) {
 
                 </View>
                 <View style={styles.content}>
-                    <Text style={global.h2}>{agenda.titulo}</Text>
+                    <Text style={global.h3}>{agenda.titulo}</Text>
                     <Text style={global.p}>{formattedDate}</Text>
 
                 </View>

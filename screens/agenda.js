@@ -50,7 +50,7 @@ const AgendaScreen = React.memo(({route}) => {
       if (isFocused && runFunction) {
         console.log(runFunction)
         
-        setSelectedDate(selectedClickDate)
+        
       }
     }, [isFocused]);
   async function loadDataFromStorage() {
@@ -153,7 +153,7 @@ const AgendaScreen = React.memo(({route}) => {
 
   const onDayPress = useCallback((day) => {
     setSelectedDate(day.dateString);
-    console.log(selectedDate)
+    
 
   }, []);
 

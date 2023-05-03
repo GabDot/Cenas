@@ -123,8 +123,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
         querySnapshot.forEach((documentSnapshot) => {
           
           ementa.push(documentSnapshot.data() );
-          console.log(ementa[0][today]['meat'])
-          //console.log(ementa[0][data]['meat']);
+          console.log("ementa:",ementa[0][today]['meat'])
         });
 
         if (ementa.length > 0) {
@@ -414,7 +413,13 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
               <View key={item.dia} style={styles.ementaItem}>
 
                 <Text style={[{ color: 'white', fontSize: 18 }, global.p]}>
-                  <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{/*ementa[0][today]['meat']*/}</Text>
+                  {ementa != "" ? (
+                    <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{ementa[0][today]['meat']}</Text>
+                  ):
+                  (
+                    <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>A carregar ementa...</Text>
+                  )}
+                  
                 </Text>
 
               </View>
