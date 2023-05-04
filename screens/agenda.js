@@ -14,7 +14,6 @@ import NetInfo from '@react-native-community/netinfo';
 
 const AgendaScreen = React.memo(({route}) => {
   const isFocused = useIsFocused();
-
   const {runFunction, selectedClickDate} = route.params
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -24,14 +23,11 @@ const AgendaScreen = React.memo(({route}) => {
   const agendaRef = database.collection('agenda');
   const [eventDates, setEventDates] = useState([]);
   const [eventPDates, setPEventDates] = useState([]);
-  const eventosRef = database.collection('eventos');
-  const [agenda, setAgenda] = useState([]);
   const [newEvent, setNewEvent] = useState('');
   const today = new Date().toISOString().split('T')[0]; // get today's date in ISO format
   const modalPosition = React.useRef(new Animated.Value(0)).current;
   const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
   const [isConnected, setIsConnected] = useState();
-  const [loaded, setLoaded] = useState(false)
   function formatDate(timestamp) {
     const date = new Date(timestamp.seconds * 1000);
     const year = date.getFullYear().toString();
@@ -50,9 +46,10 @@ const AgendaScreen = React.memo(({route}) => {
       if (isFocused && runFunction) {
         console.log(runFunction)
         
-        
+        setSelectedDate(selectedClickDate)
       }
     }, [isFocused]);
+    console.log(selectedDate)
   async function loadDataFromStorage() {
     const agendaData = await AsyncStorage.getItem('agenda');
     const turmaData = await AsyncStorage.getItem('turma');
@@ -71,28 +68,16 @@ const AgendaScreen = React.memo(({route}) => {
         };
       });
       setEventDates(parsedData);
-
-
     }
-
     if (agendaPData !== null) {
       const parsedPData = JSON.parse(agendaPData);
 
       setPEventDates(parsedPData);
-
     }
 
   }
-  
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsConnected(state.isConnected);
-    });
 
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+
   useEffect(() => {
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       console.log(isConnected);
@@ -101,10 +86,7 @@ const AgendaScreen = React.memo(({route}) => {
     });
     loadDataFromStorage();
 
-   
     
-
-    if (isConnected) {
 
       if (turma) {
         agendaRef.doc(turma).collection('agenda')
@@ -143,18 +125,14 @@ const AgendaScreen = React.memo(({route}) => {
           }
 
         })
-    }
-    return () => {
-      unsubscribeNetInfo();
-    };
+    
+    
   }, [isConnected]);
   
 
 
   const onDayPress = useCallback((day) => {
     setSelectedDate(day.dateString);
-    
-
   }, []);
 
 
@@ -205,7 +183,7 @@ const AgendaScreen = React.memo(({route}) => {
       setPEventDates(eventP);
       eventPRef.set(eventPData);
       AsyncStorage.setItem('agendaP', JSON.stringify(eventP));
-      const agendaPData = await AsyncStorage.getItem('agendaP');
+
     } else {
       setIsModal2Visible(true)
     }
@@ -237,7 +215,7 @@ const AgendaScreen = React.memo(({route}) => {
   }, [eventDates, eventPDates, selectedDate]);
 
 
-  const currentDate = moment().format('YYYY-MM-DD');
+  
   const currentYear = moment().format('YYYY');
   const lastYear = moment().subtract(1, 'year').format('YYYY');
 

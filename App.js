@@ -3,16 +3,18 @@ import { StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Home from './screens/home';
 import User from './screens/user';
 import Login from './screens/login';
+import Ementa from './screens/ementa'
 import Agenda from './screens/agenda';
 import * as SplashScreen from "expo-splash-screen"
 import { useEffect, useState, createContext } from 'react';
 import { useFonts } from 'expo-font'
-import AgendaScreen from './screens/agenda';
+
 import { LogBox } from 'react-native';
 
 LogBox.ignoreAllLogs();
@@ -80,7 +82,7 @@ export default function App() {
           }} />
            <Tab.Screen 
             name="Agenda" 
-            component={AgendaScreen} 
+            component={Agenda} 
             options={{
               tabBarIcon: ({ color }) => (
                 <MaterialCommunityIcons name="calendar" color={color} size={38} />
@@ -93,11 +95,11 @@ export default function App() {
               },
             })}
             />
-          <Tab.Screen name="Mais" component={User}
+          <Tab.Screen name="Ementa" component={Ementa}
           options={{
             
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="dots-horizontal" color={color} size={38} />
+              <Icon name="restaurant-outline" color={color} size={38} />
             ),
           }} />
         </Tab.Navigator>

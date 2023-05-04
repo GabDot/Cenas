@@ -24,14 +24,13 @@ const EventList = ({ events, noEventsMessage, selectedDate }) => {
 
     const item = await AsyncStorage.getItem('agendaP');
 
-
     const parsedItem = JSON.parse(item);
 
 
     parsedItem.selectedEvent = newText
 
 
-    await AsyncStorage.setItem('myItem', JSON.stringify(parsedItem));
+    await AsyncStorage.setItem('agendaP', JSON.stringify(parsedItem));
 
 
   };
@@ -40,16 +39,12 @@ const EventList = ({ events, noEventsMessage, selectedDate }) => {
     setModalVisible(false);
     agendaPRef.doc(id).delete()
     const item = await AsyncStorage.getItem('agendaP');
-
-
     const parsedItem = JSON.parse(item);
-
-
     delete parsedItem.selectedEvent;
-
-
-    await AsyncStorage.setItem('myItem', JSON.stringify(parsedItem));
-
+    console.log(selectedEvent)
+ 
+    await AsyncStorage.setItem('agendaP', JSON.stringify(parsedItem));
+    
   };
 
   return (
@@ -100,7 +95,8 @@ const EventList = ({ events, noEventsMessage, selectedDate }) => {
               value={newText}
             />
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <TouchableOpacity style={[styles.cancelButton]} onPress={() => setModal2Visible(false)}>
+              <TouchableOpacity style={[styles.cancelButton]} onPress={() => {setModal2Visible(false)
+              setModalVisible(true)}}>
 
                 <Text style={[global.p, { color: 'white' }]}>Cancel</Text>
               </TouchableOpacity>

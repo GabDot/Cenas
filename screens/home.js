@@ -2,17 +2,16 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, S
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Header from '../components/Header';
-import QuickNavItem from '../components/QuickNavItem';
 import EventItem from '../components/EventItem';
 import AgendaItem from '../components/AgendaItem';
 import { useState } from 'react';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { global } from "../styles/globals";
 import { auth } from '../firebase';
 import { database } from '../firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SelectableQuickNav from "../components/SelectableQuickNav"
 import NetInfo from '@react-native-community/netinfo';
+import EmentaItem from '../components/EmentaItem';
+import moment from 'moment/moment';
 
 export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
 
@@ -20,9 +19,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   const [eventos, setEventos] = useState([]);
   const [agenda, setAgenda] = useState([]);
   const [ementa, setEmenta] = useState([]);
-  const [cantinaHorario, setCantinaHorario] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-
+  const [cantinaHorario, setCantinaHorario] = useState();
   const uid = auth.currentUser.uid
   const [username, setUsername] = useState('');
   const [turma, setTurma] = useState('');
@@ -36,9 +33,8 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   const [isConnected, setIsConnected] = useState();
   const [loaded, setLoaded] = useState(false);
   const today = new Date().toISOString().split('T')[0];
-
- 
- 
+  
+ //console.log(dayOfWeek)
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected);
@@ -49,19 +45,13 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     };
   }, []);
 
-  function formatDate(timestamp) {
-    const date = new Date(timestamp.seconds * 1000);
-    const year = date.getFullYear().toString();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
   async function loadDataFromStorage() {
     const eventosData = await AsyncStorage.getItem('eventos');
     const agendaData = await AsyncStorage.getItem('agenda');
     const usernameData = await AsyncStorage.getItem('username');
     const ementaData = await AsyncStorage.getItem('ementa');
     const agendaPData = await AsyncStorage.getItem('agendaP')
+    const cantinaHorarioData = await AsyncStorage.getItem('cantinaHorario')
     
     
     if (eventosData !== null) {
@@ -80,7 +70,9 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     if (agendaPData !== null) {
       setAgendaP(JSON.parse(agendaPData));
     }
-
+    if(cantinaHorario !== null){
+      setCantinaHorario(JSON.parse(cantinaHorarioData));
+    }
   }
   useEffect(() => {
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
@@ -89,138 +81,6 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     });
     console.log(isConnected)
     loadDataFromStorage();
-
-    if (isConnected && !loaded) {
-
-      setLoaded(true);
-      cantinaHorarioRef.get().then((querySnapshot) => {
-        const cantinaHorario = [];
-        querySnapshot.forEach((documentSnapshot) => {
-          cantinaHorario.push(documentSnapshot.data());
-        });
-        if (cantinaHorario.length > 0) {
-          setCantinaHorario(cantinaHorario);
-
-          AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
-        }
-      });
-
-      eventosRef.get().then((querySnapshot) => {
-        const eventos = [];
-        querySnapshot.forEach((documentSnapshot) => {
-          eventos.push(documentSnapshot.data());
-        });
-        if (eventos.length > 0) {
-          setEventos(eventos);
-
-          AsyncStorage.setItem('eventos', JSON.stringify(eventos));
-        }
-      });
-      ementaRef.get().then((querySnapshot) => {
-        const ementa = [];
-        const data = '2023-05-01'
-
-        querySnapshot.forEach((documentSnapshot) => {
-          
-          ementa.push(documentSnapshot.data() );
-          console.log("ementa:",ementa[0][today]['meat'])
-        });
-
-        if (ementa.length > 0) {
-          setEmenta(ementa);
-          AsyncStorage.setItem('ementa', JSON.stringify(ementa));
-        }
-      });
-
-
-      userRef
-        .get()
-        .then((doc) => {
-          if (doc.exists) {
-            const username = doc.data().nome;
-            const turma = doc.data().turma;
-            setTurma(turma)
-            setUsername(username);
-            AsyncStorage.setItem('turma', turma);
-            AsyncStorage.setItem('username', username);
-            if (turma) {
-              agendaRef.doc(turma).collection('agenda')
-                .get()
-                .then((agendaDoc) => {
-                  const agenda = []
-                  agendaDoc.forEach((document) => {
-                    const titulo = document.data().titulo;
-                    const data = document.data().data;
-                    const formattedDate = formatDate(data);
-                    const agendaItem = { data: formattedDate, titulo };
-
-                    if (new Date(formattedDate) >= new Date()) {
-                      console.log(formattedDate)
-                      console.log(new Date())
-                      agenda.push(agendaItem);
-                    } else {
-                      agendaRef.doc(turma).collection('agenda').doc(document.id).delete()
-                        .then(() => {
-                          console.log('Document successfully deleted from Firebase Firestore');
-                        })
-                        .catch((error) => {
-                          console.error('Error deleting document from Firebase Firestore:', error);
-                        });
-                    }
-                  });
-
-                  setAgenda(agenda);
-
-                  if (agenda.length > 0) {
-                    AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-                  } else {
-                    setAgenda([]);
-                    AsyncStorage.removeItem('agenda');
-                  }
-                })
-                .catch((error) => {
-                  console.error('Error getting agenda document:', error);
-                });
-            }
-          } else {
-            console.log('No user document found with ID:', uid);
-          }
-        })
-        .catch((error) => {
-          console.error('Error getting user document:', error);
-        });
-      agendaPRef
-        .get()
-        .then((agendaDoc) => {
-          const agendaP = []
-          const now = new Date()
-          agendaDoc.forEach((document) => {
-            const titulo = document.data().titulo;
-            const data = document.data().data;
-            const id = document.data().id;
-
-            if (new Date(data) < now) {
-              // delete document if date is before today
-              document.ref.delete()
-            } else {
-              agendaP.push({ data: data, titulo, id });
-            }
-          });
-          setAgendaP(agendaP);
-
-          if (agendaP.length > 0) {
-            console.log(agendaP.length)
-            AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
-          } else {
-            console.log(agendaP.length)
-            setAgendaP([]);
-            AsyncStorage.removeItem('agendaP');
-          }
-        })
-        .catch((error) => {
-          console.error('Error getting agenda document:', error);
-        });
-
       agendaPRef
         .onSnapshot((agendaDoc) => {
           const agendaP = []
@@ -230,31 +90,18 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
             const id = document.data().id;
             agendaP.push({ data: data, titulo, id });
           });
-          setAgendaP(agendaP);
+         
 
           if (agendaP.length > 0) {
             console.log(agendaP.length)
+            setAgendaP(agendaP);
             AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
           }
           else {
-            console.log(agendaP.length)
-            console.log("trigger 2")
             setAgendaP([]);
             AsyncStorage.removeItem('agendaP');
           }
         })
-
-      cantinaHorarioRef.onSnapshot((querySnapshot) => {
-        const cantinaHorario = [];
-        querySnapshot.forEach((documentSnapshot) => {
-          cantinaHorario.push(documentSnapshot.data());
-        });
-        if (cantinaHorario.length > 0) {
-          setCantinaHorario(cantinaHorario);
-          AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
-        }
-      });
-
       eventosRef.onSnapshot((querySnapshot) => {
         const eventos = [];
         querySnapshot.forEach((documentSnapshot) => {
@@ -264,9 +111,13 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
           setEventos(eventos);
           AsyncStorage.setItem('eventos', JSON.stringify(eventos));
         }
+        else {
+          setEventos([]);
+          AsyncStorage.removeItem('eventos');
+        }
       });
 
-      ementaRef.onSnapshot((querySnapshot) => {
+     ementaRef.onSnapshot((querySnapshot) => {
         const ementa = [];
         querySnapshot.forEach((documentSnapshot) => {
           ementa.push(documentSnapshot.data() );
@@ -292,8 +143,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
                 agendaDoc.forEach((document) => {
                   const titulo = document.data().titulo;
                   const data = document.data().data;
-
-                  agenda.push({ data: formatDate(data), titulo });
+                  agenda.push({ data: data, titulo });
                 });
                 setAgenda(agenda);
                 if (agenda.length > 0) {
@@ -309,17 +159,31 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
           console.log('No user document found with ID:', uid);
         }
       });
+      const dayOfWeek = moment().locale('pt').format('dddd');
+      console.log(dayOfWeek)
+      const cantinaHorarioRef = database.collection('cantinahorario').doc(dayOfWeek);
+        cantinaHorarioRef.onSnapshot((doc) => {
+          if (doc.exists) {
+            const { '12IG': cantinaHorario } = doc.data();
+            setCantinaHorario(cantinaHorario);
+            console.log(cantinaHorario)
+            AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
+          } else {
+            console.log("No such document");
+          }
+        });
 
 
       console.log('database loaded');
-    }
+    
 
 
     return () => {
       unsubscribeNetInfo();
     };
-  }, [loaded, isConnected]);
+  }, [loaded]);
 
+ 
 
 
   const screens = [
@@ -397,34 +261,34 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
             />
           }
           <Text style={[{ marginTop: 30 }, global.h2]}>Eventos</Text>
-          <FlatList
+          {eventos.length === 0 ? 
+          <Text style={[{ marginTop: 10 }, global.p]}>Não existem eventos marcados</Text>
+          : <FlatList
 
-            showsHorizontalScrollIndicator={false}
-            horizontal={true}
-            contentContainerStyle={[styles.eventos, { flexDirection: "row" }]}
-            data={eventos}
-            renderItem={({ item }) => (
-              <EventItem eventos={item} />
-            )} />
+          showsHorizontalScrollIndicator={false}
+          horizontal={true}
+          contentContainerStyle={[styles.eventos, { flexDirection: "row" }]}
+          data={eventos}
+          renderItem={({ item }) => (
+            <EventItem eventos={item} />
+          )} />
 
-
-          <View style={[{ marginTop: 30 }, styles.ementaContainer]}>
-           
-              <View key={item.dia} style={styles.ementaItem}>
-
-                <Text style={[{ color: 'white', fontSize: 18 }, global.p]}>
-                  {ementa != "" ? (
-                    <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{ementa[0][today]['meat']}</Text>
-                  ):
-                  (
-                    <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>A carregar ementa...</Text>
-                  )}
-                  
-                </Text>
-
-              </View>
-            
-          </View>
+        }
+        {!cantinaHorario ? 
+        <View style={{ height: 80 ,
+          width: '100%',
+          backgroundColor: '#D0247A',
+          justifyContent: 'center',
+          alignItems:'center',
+          borderRadius: 10,
+          marginTop: 20,
+          zIndex: 2,
+          paddingVertical: 6,}}>
+        <Text style={[global.h3,{color:'white'}]}>Não há almoço hoje</Text>
+        </View>
+        :<EmentaItem ementa={ementa} cantinaHorario={cantinaHorario}></EmentaItem>
+      }
+          
           <TouchableOpacity style={{ marginTop: 30 }} onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
 
 
@@ -468,20 +332,5 @@ const styles = StyleSheet.create({
 
 
   },
-  ementaItem: {
-    height: 75,
-    width: '100%',
-    backgroundColor: '#D0247A',
-    justifyContent: 'center',
-    borderRadius: 10,
-    marginTop: 10,
-    zIndex: 2,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
-  ementaContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
+  
 });
