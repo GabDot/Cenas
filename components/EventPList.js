@@ -5,7 +5,7 @@ import { global } from '../styles/globals';
 import { database } from '../firebase';
 import { auth } from '../firebase';
 
-const EventList = ({ events, noEventsMessage, selectedDate }) => {
+const EventList = ({ events, noEventsMessage, selectedDate, isConnected }) => {
   const uid = auth.currentUser.uid
   const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
   const [modalVisible, setModalVisible] = useState(false);
@@ -18,33 +18,50 @@ const EventList = ({ events, noEventsMessage, selectedDate }) => {
 
   const handleEdit = async (id) => {
     setModal2Visible(false);
-    agendaPRef.doc(id).update({
-      titulo: newText
-    })
-
+  
+    // Check if the device is offline
+    if (!isConnected) {
+      // Store the edited event in AsyncStorage
+      const editedEvents = await AsyncStorage.getItem('editedEvents');
+      const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
+      parsedEditedEvents.push({ id, titulo: newText });
+      await AsyncStorage.setItem('editedEvents', JSON.stringify(parsedEditedEvents));
+    } else {
+      // Update the event in the database
+      agendaPRef.doc(id).update({
+        titulo: newText
+      });
+    }
+  
+    // Update AsyncStorage
     const item = await AsyncStorage.getItem('agendaP');
-
     const parsedItem = JSON.parse(item);
-
-
-    parsedItem.selectedEvent = newText
-
-
+    const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
+    parsedItem[indexToUpdate].titulo = newText;
     await AsyncStorage.setItem('agendaP', JSON.stringify(parsedItem));
-
-
   };
-
+  
   const handleDelete = async (id) => {
     setModalVisible(false);
-    agendaPRef.doc(id).delete()
+  
+    // Check if the device is offline
+    if (!isConnected) {
+      // Store the ID of the deleted event in AsyncStorage
+      const deletedEvents = await AsyncStorage.getItem('deletedEvents');
+      const parsedDeletedEvents = deletedEvents ? JSON.parse(deletedEvents) : [];
+      parsedDeletedEvents.push(id);
+      await AsyncStorage.setItem('deletedEvents', JSON.stringify(parsedDeletedEvents));
+    } else {
+      // Delete the event from the database
+      agendaPRef.doc(id).delete();
+    }
+  
+    // Update AsyncStorage
     const item = await AsyncStorage.getItem('agendaP');
     const parsedItem = JSON.parse(item);
-    delete parsedItem.selectedEvent;
-    console.log(selectedEvent)
- 
+    const indexToRemove = parsedItem.findIndex(obj => obj.id === selectedEvent.id);
+    parsedItem.splice(indexToRemove, 1);
     await AsyncStorage.setItem('agendaP', JSON.stringify(parsedItem));
-    
   };
 
   return (
@@ -113,20 +130,21 @@ const EventList = ({ events, noEventsMessage, selectedDate }) => {
         </View>
       </Modal>
       {filteredEvents.length > 0 ? (
-        <TouchableOpacity onPress={() => {
-          setSelectedEvent(filteredEvents[0]);
-          setModalVisible(true);
-        }}>
-          <Text style={[{ fontWeight: 'bold' }, global.p]}>
-            {filteredEvents.map((event, index, array) => {
-              const separator = index === array.length - 1 ? '' : '\n\n';
-              return `${event.titulo}${separator}`;
-            })}
-          </Text>
-        </TouchableOpacity>
-      ) : (
-        <Text style={[global.p]}>{noEventsMessage}</Text>
-      )}
+  filteredEvents.map(event => (
+    <TouchableOpacity
+      key={event.titulo}
+      onPress={() => {
+        setSelectedEvent(event);
+        setModalVisible(true);
+      }}
+      style={{marginBottom:10,height:40,padding:10}}
+    >
+      <Text style={[{ fontWeight: 'bold' }, global.p]}>{event.titulo}</Text>
+    </TouchableOpacity>
+  ))
+) : (
+  <Text style={[global.p]}>{noEventsMessage}</Text>
+)}
     </View>
   );
 };
@@ -145,7 +163,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 22,
+
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   }, submitButton: {
     backgroundColor: '#337AB7',

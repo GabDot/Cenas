@@ -31,19 +31,93 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   const [agendaP, setAgendaP] = useState([])
   const cantinaHorarioRef = database.collection('cantinahorario');
   const [isConnected, setIsConnected] = useState();
+  const [changes,setChanges] = useState();
   const [loaded, setLoaded] = useState(false);
   const today = new Date().toISOString().split('T')[0];
+  useEffect(() => {
+    const handleConnectionChange = async (isConnected) => {
+      if (isConnected) {
+        // Delete events that were deleted while offline
+        const deletedEvents = await AsyncStorage.getItem('deletedEvents');
+        const parsedDeletedEvents = deletedEvents ? JSON.parse(deletedEvents) : [];
+        parsedDeletedEvents.forEach(id => {
+          agendaPRef.doc(id).delete();
+        });
+        await AsyncStorage.removeItem('deletedEvents');
   
- //console.log(dayOfWeek)
+        // Update events that were edited while offline
+        const editedEvents = await AsyncStorage.getItem('editedEvents');
+        const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
+        parsedEditedEvents.forEach(event => {
+          agendaPRef.doc(event.id).update({
+            titulo: event.titulo
+          });
+        });
+        await AsyncStorage.removeItem('editedEvents');
+  
+        // Add new events that were added while offline
+        const newEvents = await AsyncStorage.getItem('newEvents');
+        const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
+        parsedNewEvents.forEach(event => {
+          agendaPRef.doc(event.id).set(event);
+        });
+        await AsyncStorage.removeItem('newEvents');
+      }
+    };
+  
+    // Subscribe to network connection state changes
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      handleConnectionChange(state.isConnected);
+    });
+  
+    return () => {
+      // Unsubscribe from network connection state changes
+      unsubscribe();
+    };
+  }, []);
+  
+  useEffect(() => {
+    if(!isConnected){
+      const loadDataFromStorage = async () => {
+        const storedAgendaP = await AsyncStorage.getItem('agendaP');
+        if (storedAgendaP) {
+          setAgendaP(JSON.parse(storedAgendaP));
+        }
+      };
+      loadDataFromStorage();
+
+    }
+   
+  }, []);
+  
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected);
     });
-
+    if(!isConnected){
+    const asyncLoadData = async () => {
+      const storedAgendaP = await AsyncStorage.getItem('agendaP');
+      if (storedAgendaP) {
+        setAgendaP(JSON.parse(storedAgendaP));
+      }
+    };
+  
+    asyncLoadData();
+  
+    const intervalId = setInterval(asyncLoadData, 2000); // check AsyncStorage every 5 seconds
     return () => {
+      clearInterval(intervalId);
+      
+    };
+    }
+    return () => {
+      
       unsubscribe();
     };
   }, []);
+  
+  
+  
 
   async function loadDataFromStorage() {
     const eventosData = await AsyncStorage.getItem('eventos');
@@ -52,7 +126,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     const ementaData = await AsyncStorage.getItem('ementa');
     const agendaPData = await AsyncStorage.getItem('agendaP')
     const cantinaHorarioData = await AsyncStorage.getItem('cantinaHorario')
-    
+    console.log("ementadata",ementaData)
     
     if (eventosData !== null) {
       setEventos(JSON.parse(eventosData));
@@ -66,6 +140,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     }
     if (ementaData !== null) {
       setEmenta(JSON.parse(ementaData));
+      
     }
     if (agendaPData !== null) {
       setAgendaP(JSON.parse(agendaPData));
@@ -79,156 +154,124 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
       setIsConnected(state.isConnected);
 
     });
-    console.log(isConnected)
+    
+    console.log("correu")
     loadDataFromStorage();
+    if(isConnected){
       agendaPRef
-        .onSnapshot((agendaDoc) => {
-          const agendaP = []
-          agendaDoc.forEach((document) => {
-            const titulo = document.data().titulo;
-            const data = document.data().data;
-            const id = document.data().id;
-            agendaP.push({ data: data, titulo, id });
-          });
-         
-
-          if (agendaP.length > 0) {
-            console.log(agendaP.length)
-            setAgendaP(agendaP);
-            AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
-          }
-          else {
-            setAgendaP([]);
-            AsyncStorage.removeItem('agendaP');
-          }
-        })
-      eventosRef.onSnapshot((querySnapshot) => {
-        const eventos = [];
-        querySnapshot.forEach((documentSnapshot) => {
-          eventos.push(documentSnapshot.data());
+      .onSnapshot((agendaDoc) => {
+        const agendaP = []
+        agendaDoc.forEach((document) => {
+          const titulo = document.data().titulo;
+          const data = document.data().data;
+          const id = document.data().id;
+          agendaP.push({ data: data, titulo, id });
         });
-        if (eventos.length > 0) {
-          setEventos(eventos);
-          AsyncStorage.setItem('eventos', JSON.stringify(eventos));
+       
+
+        if (agendaP.length > 0) {
+          console.log(agendaP.length)
+          setAgendaP(agendaP);
+          AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
         }
         else {
-          setEventos([]);
-          AsyncStorage.removeItem('eventos');
+          setAgendaP([]);
+          AsyncStorage.removeItem('agendaP');
         }
+      })
+    eventosRef.onSnapshot((querySnapshot) => {
+      const eventos = [];
+      querySnapshot.forEach((documentSnapshot) => {
+        eventos.push(documentSnapshot.data());
       });
+      if (eventos.length > 0) {
+        setEventos(eventos);
+        AsyncStorage.setItem('eventos', JSON.stringify(eventos));
+      }
+      else {
+        setEventos([]);
+        AsyncStorage.removeItem('eventos');
+      }
+    });
 
-     ementaRef.onSnapshot((querySnapshot) => {
-        const ementa = [];
-        querySnapshot.forEach((documentSnapshot) => {
-          ementa.push(documentSnapshot.data() );
-        });
-        if (ementa.length > 0) {
-          setEmenta(ementa);
-          AsyncStorage.setItem('ementa', JSON.stringify(ementa));
+   ementaRef.onSnapshot((querySnapshot) => {
+      const ementa = [];
+      querySnapshot.forEach((documentSnapshot) => {
+        ementa.push(documentSnapshot.data() );
+      });
+      if (ementa.length > 0) {
+        setEmenta(ementa);
+        AsyncStorage.setItem('ementa', JSON.stringify(ementa));
+      }
+      else{
+        setEmenta([]);
+        AsyncStorage.removeItem('ementa');
+      }
+    });
+
+    userRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        const username = doc.data().nome;
+        const turma = doc.data().turma;
+        setTurma(turma);
+        setUsername(username);
+        AsyncStorage.setItem('turma', turma);
+        AsyncStorage.setItem('username', username);
+        if (turma) {
+          agendaRef.doc(turma).collection('agenda')
+            .onSnapshot((agendaDoc) => {
+              const agenda = []
+              agendaDoc.forEach((document) => {
+                const titulo = document.data().titulo;
+                const data = document.data().data;
+                agenda.push({ data: data, titulo });
+              });
+              setAgenda(agenda);
+              if (agenda.length > 0) {
+                AsyncStorage.setItem('agenda', JSON.stringify(agenda));
+              } else {
+                setAgenda([]);
+                AsyncStorage.removeItem('agenda');
+              }
+            })
+
         }
-      });
-
-      userRef.onSnapshot((doc) => {
+      } else {
+        console.log('No user document found with ID:', uid);
+      }
+    });
+    const dayOfWeek = moment().locale('pt').format('dddd');
+    console.log(dayOfWeek)
+    const cantinaHorarioRef = database.collection('cantinahorario').doc(dayOfWeek);
+      cantinaHorarioRef.onSnapshot((doc) => {
         if (doc.exists) {
-          const username = doc.data().nome;
-          const turma = doc.data().turma;
-          setTurma(turma);
-          setUsername(username);
-          AsyncStorage.setItem('turma', turma);
-          AsyncStorage.setItem('username', username);
-          if (turma) {
-            agendaRef.doc(turma).collection('agenda')
-              .onSnapshot((agendaDoc) => {
-                const agenda = []
-                agendaDoc.forEach((document) => {
-                  const titulo = document.data().titulo;
-                  const data = document.data().data;
-                  agenda.push({ data: data, titulo });
-                });
-                setAgenda(agenda);
-                if (agenda.length > 0) {
-                  AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-                } else {
-                  setAgenda([]);
-                  AsyncStorage.removeItem('agenda');
-                }
-              })
-
-          }
+          const { '12IG': cantinaHorario } = doc.data();
+          setCantinaHorario(cantinaHorario);
+          console.log(cantinaHorario)
+          AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
         } else {
-          console.log('No user document found with ID:', uid);
+          console.log("No such document");
         }
       });
-      const dayOfWeek = moment().locale('pt').format('dddd');
-      console.log(dayOfWeek)
-      const cantinaHorarioRef = database.collection('cantinahorario').doc(dayOfWeek);
-        cantinaHorarioRef.onSnapshot((doc) => {
-          if (doc.exists) {
-            const { '12IG': cantinaHorario } = doc.data();
-            setCantinaHorario(cantinaHorario);
-            console.log(cantinaHorario)
-            AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
-          } else {
-            console.log("No such document");
-          }
-        });
 
 
-      console.log('database loaded');
-    
+    console.log('database loaded');
+  
 
+    }
+      
 
     return () => {
       unsubscribeNetInfo();
+     
     };
-  }, [loaded]);
+  }, [isConnected,changes]);
 
  
-
-
-  const screens = [
-
-    {
-      name: "Notas",
-      icon: "clipboard-list"
-    },
-    {
-      name: "Ementa",
-      icon: "silverware"
-    },
-
-    {
-      name: "Notas",
-      icon: "clipboard-list"
-    },
-    {
-      name: "Ementa",
-      icon: "silverware"
-    },
-  ]
-
-
-
-  const deleteItem = (name, key) => {
-    setItem((prevItem) => {
-      return prevItem.filter(item => item.key != key)
-    })
-
-
-
-  }
-  const submitHandler = (value, icon, color, route) => {
-    setItem((prevItem) => {
-      return [
-        { name: value, key: Math.random().toString(), icon: icon, color: color, route: route }, ...prevItem
-      ]
-    })
-  }
   const handleSignOut = () => {
     auth.signOut()
     setIsLoggedIn(false)
   }
-
 
 
   return (

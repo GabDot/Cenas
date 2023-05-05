@@ -11,7 +11,7 @@ import EventPList from '../components/EventPList';
 import EventList from '../components/EventList';
 import { useIsFocused } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
-
+import { useFocusEffect } from '@react-navigation/native';
 const AgendaScreen = React.memo(({route}) => {
   const isFocused = useIsFocused();
   const {runFunction, selectedClickDate} = route.params
@@ -27,6 +27,7 @@ const AgendaScreen = React.memo(({route}) => {
   const today = new Date().toISOString().split('T')[0]; // get today's date in ISO format
   const modalPosition = React.useRef(new Animated.Value(0)).current;
   const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
+  
   const [isConnected, setIsConnected] = useState();
   function formatDate(timestamp) {
     const date = new Date(timestamp.seconds * 1000);
@@ -35,6 +36,38 @@ const AgendaScreen = React.memo(({route}) => {
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
+  useEffect(() => {
+    const loadDataFromStorage = async () => {
+      const storedAgendaP = await AsyncStorage.getItem('agendaP');
+      if (storedAgendaP) {
+        setPEventDates(JSON.parse(storedAgendaP));
+      }
+    };
+    loadDataFromStorage();
+  }, []);
+  
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsConnected(state.isConnected);
+    });
+  
+    const asyncLoadData = async () => {
+      const storedAgendaP = await AsyncStorage.getItem('agendaP');
+      if (storedAgendaP) {
+        setPEventDates(JSON.parse(storedAgendaP));
+      }
+    };
+  
+    asyncLoadData();
+  
+    const intervalId = setInterval(asyncLoadData, 1000); 
+  
+    return () => {
+      clearInterval(intervalId);
+      unsubscribe();
+    };
+  }, []);
+  
   const noEventsMessage = selectedDate === today
     ? 'Não tens nada agendado para hoje'
     : 'Não tens nada agendado para este dia';
@@ -44,12 +77,12 @@ const AgendaScreen = React.memo(({route}) => {
 
     useEffect(() => {
       if (isFocused && runFunction) {
-        console.log(runFunction)
+        
         
         setSelectedDate(selectedClickDate)
       }
     }, [isFocused]);
-    console.log(selectedDate)
+    
   async function loadDataFromStorage() {
     const agendaData = await AsyncStorage.getItem('agenda');
     const turmaData = await AsyncStorage.getItem('turma');
@@ -57,16 +90,9 @@ const AgendaScreen = React.memo(({route}) => {
     setTurma(turmaData);
 
     if (agendaData !== null) {
-      const parsedData = JSON.parse(agendaData).map((event) => {
-        const [year, month, day] = event.data.split('-');
-        const localDate = new Date(year, month - 1, day, 0, 0, 0);
-        const offset = localDate.getTimezoneOffset() * 60000; // convert minutes to milliseconds
-        const utcDate = new Date(localDate.getTime() - offset);
-        return {
-          ...event,
-          data: utcDate.toISOString().split('T')[0]
-        };
-      });
+      const parsedData = JSON.parse(agendaData)
+       
+    
       setEventDates(parsedData);
     }
     if (agendaPData !== null) {
@@ -86,7 +112,7 @@ const AgendaScreen = React.memo(({route}) => {
     });
     loadDataFromStorage();
 
-    
+    if(isConnected){
 
       if (turma) {
         agendaRef.doc(turma).collection('agenda')
@@ -96,7 +122,7 @@ const AgendaScreen = React.memo(({route}) => {
             agendaDoc.forEach((document) => {
               const titulo = document.data().titulo;
               const data = document.data().data;
-              console.log(titulo)
+              
               agenda.push({ data: formatDate(data), titulo });
             });
             setEventDates(agenda);
@@ -125,8 +151,10 @@ const AgendaScreen = React.memo(({route}) => {
           }
 
         })
-    
-    
+      }
+      return () => {
+        unsubscribeNetInfo();
+      };
   }, [isConnected]);
   
 
@@ -170,9 +198,12 @@ const AgendaScreen = React.memo(({route}) => {
     const today = new Date().setHours(0, 0, 0, 0);
     const selectedDateObj = new Date(selectedDate);
     selectedDateObj.setHours(0, 0, 0, 0);
-
+  
     if (selectedDateObj.getTime() >= today) {
-      const eventP = [];
+      // Retrieve existing events from AsyncStorage
+      const existingEvents = await AsyncStorage.getItem('agendaP');
+      const eventP = existingEvents ? JSON.parse(existingEvents) : [];
+  
       const eventPRef = agendaPRef.doc();
       const eventPData = {
         titulo: newEvent,
@@ -181,13 +212,24 @@ const AgendaScreen = React.memo(({route}) => {
       };
       eventP.push(eventPData);
       setPEventDates(eventP);
-      eventPRef.set(eventPData);
+  
+      // Check if the device is offline
+      if (!isConnected) {
+        // Store the new event in AsyncStorage
+        const newEvents = await AsyncStorage.getItem('newEvents');
+        const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
+        parsedNewEvents.push(eventPData);
+        await AsyncStorage.setItem('newEvents', JSON.stringify(parsedNewEvents));
+      } else {
+        // Add the new event to the database
+        eventPRef.set(eventPData);
+      }
+  
       AsyncStorage.setItem('agendaP', JSON.stringify(eventP));
-
     } else {
       setIsModal2Visible(true)
     }
-  }
+  };
 
 
 
@@ -294,7 +336,7 @@ const AgendaScreen = React.memo(({route}) => {
       </Modal>
 
       <Header></Header>
-      <View style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Calendar
           onDayPress={onDayPress}
           markedDates={markedDates}
@@ -325,6 +367,7 @@ const AgendaScreen = React.memo(({route}) => {
           events={eventPDates}
           selectedDate={selectedDate}
           noEventsMessage={noEventsMessage2}
+          isConnected={isConnected}
         />
 
 
@@ -333,7 +376,7 @@ const AgendaScreen = React.memo(({route}) => {
             <Text style={styles.plus}>+</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </>
   );
 });

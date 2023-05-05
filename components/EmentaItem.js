@@ -64,11 +64,11 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
       borderRadius: 10,
       marginTop: 10,
       zIndex: 2,
-      padding:15
+      padding:15,
+     
     },
     modalContainer: {
       backgroundColor: '#D0247A',
-      
       borderRadius: 10,
       padding:30,
     },
@@ -82,13 +82,13 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 22,
+    
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   closeButton: {
     position: 'absolute',
     top: 10,
-    right: 10,
+    right: 15,
     width: 25,
     height: 25,
     borderRadius: 50,

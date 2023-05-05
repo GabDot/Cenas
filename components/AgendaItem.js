@@ -48,10 +48,12 @@ const styles = StyleSheet.create({
         marginTop: 25,
         zIndex: 2,
         padding:16
+        
 
     },
     container: {
         width: 309,
+       
     },
     image: {
         position: 'absolute',
