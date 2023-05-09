@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Modal, Pressable, Image } from "react-native";
 import { global } from "../styles/globals";
 import moment from 'moment';
 import { useState } from "react";
-import 'moment/locale/pt'; // import Portuguese locale
+import 'moment/locale/pt'; 
 import { database } from '../firebase';
 import { TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/AntDesign';
@@ -17,7 +17,10 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     };
 
     return (
+      //ementa && ementa[0] &&
       <>
+      
+      
         <TouchableOpacity style={[{ marginTop: 30 }]} onPress={handlePress}>
           <View style={styles.ementaItem}>
             {ementa != '' ? (
@@ -50,8 +53,9 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
           </View>
           </View>
         </Modal>
-     
+
       </>
+    
     );
   };
   

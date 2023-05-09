@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput } from 'react-native';
+import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl } from 'react-native';
 import { Calendar, LocaleConfig, CalendarList } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header';
@@ -12,6 +12,7 @@ import EventList from '../components/EventList';
 import { useIsFocused } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect } from '@react-navigation/native';
+import ErrorModal from '../components/ErrorModal';
 const AgendaScreen = React.memo(({route}) => {
   const isFocused = useIsFocused();
   const {runFunction, selectedClickDate} = route.params
@@ -27,7 +28,23 @@ const AgendaScreen = React.memo(({route}) => {
   const today = new Date().toISOString().split('T')[0]; // get today's date in ISO format
   const modalPosition = React.useRef(new Animated.Value(0)).current;
   const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
+  const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage,setErrorMessage] = useState('');
+
+  const wait = (timeout) => {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+  }
   
+  
+    
+  
+    const onRefresh = () => {
+      setRefreshing(true);
+      // Call a function to fetch new data here
+      wait(2000).then(() => setRefreshing(false));
+    };
+  
+const currentDate = moment().format("YYYY-MM-DD");
   const [isConnected, setIsConnected] = useState();
   function formatDate(timestamp) {
     const date = new Date(timestamp.seconds * 1000);
@@ -82,6 +99,13 @@ const AgendaScreen = React.memo(({route}) => {
         setSelectedDate(selectedClickDate)
       }
     }, [isFocused]);
+    useEffect(() => {
+      if(!runFunction){
+        console.log("ya")
+        setSelectedDate(currentDate)
+      }
+
+    },[])
     
   async function loadDataFromStorage() {
     const agendaData = await AsyncStorage.getItem('agenda');
@@ -122,8 +146,7 @@ const AgendaScreen = React.memo(({route}) => {
             agendaDoc.forEach((document) => {
               const titulo = document.data().titulo;
               const data = document.data().data;
-              
-              agenda.push({ data: formatDate(data), titulo });
+              agenda.push({ data: data, titulo });
             });
             setEventDates(agenda);
 
@@ -155,7 +178,7 @@ const AgendaScreen = React.memo(({route}) => {
       return () => {
         unsubscribeNetInfo();
       };
-  }, [isConnected]);
+  }, [isConnected,refreshing]);
   
 
 
@@ -199,7 +222,7 @@ const AgendaScreen = React.memo(({route}) => {
     const selectedDateObj = new Date(selectedDate);
     selectedDateObj.setHours(0, 0, 0, 0);
   
-    if (selectedDateObj.getTime() >= today) {
+    if (selectedDateObj.getTime() >= today && newEvent.length>3 && newEvent.length<20) {
       // Retrieve existing events from AsyncStorage
       const existingEvents = await AsyncStorage.getItem('agendaP');
       const eventP = existingEvents ? JSON.parse(existingEvents) : [];
@@ -228,6 +251,17 @@ const AgendaScreen = React.memo(({route}) => {
       AsyncStorage.setItem('agendaP', JSON.stringify(eventP));
     } else {
       setIsModal2Visible(true)
+      if(selectedDateObj.getTime() <= today){
+        setErrorMessage('Não é possível criar um evento pessoal para uma data no passado')
+      }
+      else if(newEvent.length<3 ){
+        setErrorMessage('O nome dado ao evento não tem caracteres suficientes')
+      }
+      else if(newEvent.length>20 ){
+        setErrorMessage('O nome dado ao evento tem demasiado caracteres')
+      }
+
+      
     }
   };
 
@@ -284,6 +318,14 @@ const AgendaScreen = React.memo(({route}) => {
   return (
 
     <>
+     <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
       <Modal
         animationType='fade'
         visible={isModalVisible}
@@ -318,22 +360,7 @@ const AgendaScreen = React.memo(({route}) => {
           </View>
         </View>
       </Modal>
-      <Modal
-        animationType='fade'
-        visible={isModal2Visible}
-        onRequestClose={() => setIsModal2Visible(false)}
-        transparent={true}
-      >
-        <View style={styles.modalContainer}>
-
-          <View style={styles.modalContent}>
-            <TouchableOpacity style={[styles.closeButton]} onPress={() => setIsModal2Visible(false)}>
-              <Text style={global.p}>X</Text>
-            </TouchableOpacity>
-            <Text style={global.p}>Não podes agendar nada para antes do dia de hoje</Text>
-          </View>
-        </View>
-      </Modal>
+     <ErrorModal visible={isModal2Visible} onClose={() => setIsModal2Visible(false)} message={errorMessage}></ErrorModal>
 
       <Header></Header>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -376,6 +403,7 @@ const AgendaScreen = React.memo(({route}) => {
             <Text style={styles.plus}>+</Text>
           </TouchableOpacity>
         </View>
+      </ScrollView>
       </ScrollView>
     </>
   );

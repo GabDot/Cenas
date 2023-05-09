@@ -4,12 +4,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { global } from '../styles/globals';
 import { database } from '../firebase';
 import { auth } from '../firebase';
+import ErrorModal from './ErrorModal';
 
 const EventList = ({ events, noEventsMessage, selectedDate, isConnected }) => {
   const uid = auth.currentUser.uid
   const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
   const [modalVisible, setModalVisible] = useState(false);
   const [modal2Visible, setModal2Visible] = useState(false);
+  const [modalErrorVisible, setModalErrorVisible] = useState(false);
+  const [errorMessage,setErrorMessage] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(['a']);
 
   const [newText, setNewText] = useState('')
@@ -21,24 +24,56 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected }) => {
   
     // Check if the device is offline
     if (!isConnected) {
-      // Store the edited event in AsyncStorage
+      if(newText.length>3 && newText.length<20){
+        // Store the edited event in AsyncStorage
       const editedEvents = await AsyncStorage.getItem('editedEvents');
       const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
       parsedEditedEvents.push({ id, titulo: newText });
       await AsyncStorage.setItem('editedEvents', JSON.stringify(parsedEditedEvents));
-    } else {
-      // Update the event in the database
-      agendaPRef.doc(id).update({
-        titulo: newText
-      });
-    }
-  
-    // Update AsyncStorage
-    const item = await AsyncStorage.getItem('agendaP');
+      const item = await AsyncStorage.getItem('agendaP');
     const parsedItem = JSON.parse(item);
     const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
     parsedItem[indexToUpdate].titulo = newText;
     await AsyncStorage.setItem('agendaP', JSON.stringify(parsedItem));
+
+      }
+      else{
+        if(newText.length<3){
+          setModalErrorVisible(true)
+          setErrorMessage('O novo nome dado ao evento é demasiado pequeno')
+        }
+        else{
+          setModalErrorVisible(true)
+          setErrorMessage('O novo nome dado ao evento é demasiado pequeno')
+        }
+      }
+      
+    } else {
+      if(newText.length>3 && newText.length<20){
+      // Update the event in the database
+      agendaPRef.doc(id).update({
+        titulo: newText
+      });
+      const item = await AsyncStorage.getItem('agendaP');
+    const parsedItem = JSON.parse(item);
+    const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
+    parsedItem[indexToUpdate].titulo = newText;
+    await AsyncStorage.setItem('agendaP', JSON.stringify(parsedItem));
+    }
+    else{
+      if(newText.length<3){
+        setModalErrorVisible(true)
+        setErrorMessage('O novo nome dado ao evento é demasiado pequeno')
+      }
+      else{
+        setModalErrorVisible(true)
+        setErrorMessage('O novo nome dado ao evento é demasiado pequeno')
+      }
+    }
+    }
+  
+    // Update AsyncStorage
+    
   };
   
   const handleDelete = async (id) => {
@@ -65,7 +100,9 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected }) => {
   };
 
   return (
+    
     <View style={styles.infoContainer}>
+      <ErrorModal visible={modalErrorVisible} onClose={() => setModalErrorVisible(false) } message={errorMessage} ></ErrorModal>
       <Modal
         animationType="fade"
         transparent={true}
@@ -137,7 +174,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected }) => {
         setSelectedEvent(event);
         setModalVisible(true);
       }}
-      style={{marginBottom:10,height:40,padding:10}}
+      style={{marginBottom:10,height:30}}
     >
       <Text style={[{ fontWeight: 'bold' }, global.p]}>{event.titulo}</Text>
     </TouchableOpacity>

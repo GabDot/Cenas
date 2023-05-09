@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView, Button } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView, Button,RefreshControl } from 'react-native'
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Header from '../components/Header';
@@ -34,6 +34,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   const [changes,setChanges] = useState();
   const [loaded, setLoaded] = useState(false);
   const today = new Date().toISOString().split('T')[0];
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const handleConnectionChange = async (isConnected) => {
       if (isConnected) {
@@ -265,13 +266,26 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
       unsubscribeNetInfo();
      
     };
-  }, [isConnected,changes]);
+  }, [isConnected,refreshing]);
 
  
   const handleSignOut = () => {
     auth.signOut()
     setIsLoggedIn(false)
   }
+const wait = (timeout) => {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+}
+
+
+  
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Call a function to fetch new data here
+    wait(2000).then(() => setRefreshing(false));
+  };
+
 
 
   return (
@@ -281,6 +295,14 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
 
 
       <Header></Header>
+      <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.title}>
@@ -338,6 +360,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
 
         </View>
       </ScrollView>
+      </ScrollView>
     </View>
   )
 }
@@ -365,7 +388,7 @@ const styles = StyleSheet.create({
   },
   QuickNavModal: {
     flexDirection: 'column',
-    flexGrow: 1,            // all the available vertical space will be occupied by it
+    flexGrow: 1,
     justifyContent: 'space-between',
     padding: 25
 
