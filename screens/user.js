@@ -44,9 +44,7 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
                 const user = []
                 if (doc.exists) {
                   user.push(doc.data())
-                  console.log(user)
-                  setUser(user);
-                  AsyncStorage.setItem('user', JSON.stringify(user));
+
                   if (user.length > 0) {
                     setUser(user);
                     AsyncStorage.setItem('user', JSON.stringify(user));
