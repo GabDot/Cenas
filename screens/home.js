@@ -127,7 +127,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     const ementaData = await AsyncStorage.getItem('ementa');
     const agendaPData = await AsyncStorage.getItem('agendaP')
     const cantinaHorarioData = await AsyncStorage.getItem('cantinaHorario')
-    console.log("ementadata",ementaData)
+    
     
     if (eventosData !== null) {
       setEventos(JSON.parse(eventosData));
@@ -269,10 +269,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   }, [isConnected,refreshing]);
 
  
-  const handleSignOut = () => {
-    auth.signOut()
-    setIsLoggedIn(false)
-  }
+ 
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -354,7 +351,7 @@ const wait = (timeout) => {
         :<EmentaItem ementa={ementa} cantinaHorario={cantinaHorario}></EmentaItem>
       }
           
-          <TouchableOpacity style={{ marginTop: 30 }} onPress={handleSignOut} ><Text style={global.h2}>Sign out</Text></TouchableOpacity>
+         
 
 
 

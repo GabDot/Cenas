@@ -318,14 +318,7 @@ const currentDate = moment().format("YYYY-MM-DD");
   return (
 
     <>
-     <ScrollView
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
-      }
-    >
+    
       <Modal
         animationType='fade'
         visible={isModalVisible}
@@ -363,6 +356,14 @@ const currentDate = moment().format("YYYY-MM-DD");
      <ErrorModal visible={isModal2Visible} onClose={() => setIsModal2Visible(false)} message={errorMessage}></ErrorModal>
 
       <Header></Header>
+      <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Calendar
           onDayPress={onDayPress}

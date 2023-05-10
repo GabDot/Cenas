@@ -17,7 +17,7 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     };
 
     return (
-      //ementa && ementa[0] &&
+      ementa && ementa[0] &&
       <>
       
       

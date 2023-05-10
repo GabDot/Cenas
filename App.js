@@ -11,6 +11,7 @@ import User from './screens/user';
 import Login from './screens/login';
 import Ementa from './screens/ementa'
 import Agenda from './screens/agenda';
+import Classificacoes from './screens/classificacoes'
 import * as SplashScreen from "expo-splash-screen"
 import { useEffect, useState, createContext } from 'react';
 import { useFonts } from 'expo-font'
@@ -66,20 +67,23 @@ export default function App() {
               <MaterialCommunityIcons name="home" color={color} size={38} />
             ),
           }} >{(props) => <Home {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}</Tab.Screen>
-        <Tab.Screen name="Notas" component={User}
+        <Tab.Screen name="Classificacoes" component={Classificacoes}
           options={{
             
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="clipboard-list" color={color} size={38} />
             ),
           }} />
-          <Tab.Screen name="User" component={User}
-          options={{
-            
-            tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="account-circle" color={color} size={38} />
-            ),
-          }} />
+         <Tab.Screen
+  name="User"
+  options={{
+    tabBarIcon: ({ color }) => (
+      <MaterialCommunityIcons name="account-circle" color={color} size={38} />
+    ),
+  }}
+>
+  {(props) => <User {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}
+</Tab.Screen>
            <Tab.Screen 
             name="Agenda" 
             component={Agenda} 
@@ -102,6 +106,7 @@ export default function App() {
               <Icon name="restaurant-outline" color={color} size={38} />
             ),
           }} />
+          
         </Tab.Navigator>
       ) : (
         <Stack.Navigator>
