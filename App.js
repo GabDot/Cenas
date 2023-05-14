@@ -3,7 +3,13 @@ import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Octicons from 'react-native-vector-icons/Octicons'
+import Feather from 'react-native-vector-icons/Feather'
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons'
+import AntDesign from 'react-native-vector-icons/AntDesign'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Home from './screens/home';
@@ -17,6 +23,7 @@ import { useEffect, useState, createContext } from 'react';
 import { useFonts } from 'expo-font'
 
 import { LogBox } from 'react-native';
+import { global } from './styles/globals';
 
 LogBox.ignoreAllLogs();
 
@@ -57,39 +64,34 @@ export default function App() {
         screenOptions={{
           tabBarActiveTintColor: '#1E1E1E',
           headerShown: false,
-          tabBarShowLabel: false,
-          tabBarStyle: { height: 80 },
+          tabBarHideOnKeyboard:true, 
+          tabBarLabelStyle:[global.p,{fontSize:11,marginBottom:5}],
+          tabBarIconStyle:{marginTop:10},
+          tabBarStyle: { height: 65 },
         }}>
           <Tab.Screen name="Home" 
           options={{
-            
+            title:'Início',
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="home" color={color} size={38} />
+              <Octicons name="home" color={color} size={30} />
+              
             ),
+            
           }} >{(props) => <Home {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}</Tab.Screen>
         <Tab.Screen name="Classificacoes" component={Classificacoes}
           options={{
-            
+            title:'Classificações',
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="clipboard-list" color={color} size={38} />
+              <AntDesign name="book" color={color} size={30} />
             ),
           }} />
-         <Tab.Screen
-  name="User"
-  options={{
-    tabBarIcon: ({ color }) => (
-      <MaterialCommunityIcons name="account-circle" color={color} size={38} />
-    ),
-  }}
->
-  {(props) => <User {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}
-</Tab.Screen>
+        
            <Tab.Screen 
             name="Agenda" 
             component={Agenda} 
             options={{
               tabBarIcon: ({ color }) => (
-                <MaterialCommunityIcons name="calendar" color={color} size={38} />
+                <Feather name="calendar" color={color} size={30} />
               ),
             }}
             listeners={({ navigation }) => ({
@@ -103,9 +105,20 @@ export default function App() {
           options={{
             
             tabBarIcon: ({ color }) => (
-              <Icon name="restaurant-outline" color={color} size={38} />
+              <Icon name="restaurant-outline" color={color} size={30} />
             ),
           }} />
+           <Tab.Screen
+  name="User"
+  options={{
+    title:'Utilizador',
+    tabBarIcon: ({ color }) => (
+      <Ionicons name="person-outline" color={color} size={30} />
+    ),
+  }}
+>
+  {(props) => <User {...props} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}
+</Tab.Screen>
           
         </Tab.Navigator>
       ) : (
@@ -130,7 +143,6 @@ const styles = StyleSheet.create({
   },
   navbar:{
     width:'100%',
-    height:92,
     alignContent:'center',
     justifyContent:'center',
 

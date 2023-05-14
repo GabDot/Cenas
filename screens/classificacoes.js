@@ -1,98 +1,146 @@
-import React, { useEffect, useState } from 'react';
-import {View, SafeAreaView, StyleSheet, Text, Platform, UIManager} from 'react-native';
-import {AccordionList} from 'react-native-accordion-list-view';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet,ScrollView } from 'react-native';
+import firebase from 'firebase';
+import Collapsible from 'react-native-collapsible';
 import Header from '../components/Header';
 import { global } from '../styles/globals';
-import { auth } from '../firebase';
-import { database } from '../firebase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const Classificacoes = () => {
-    const uid = auth.currentUser.uid
-    const notasRef = database.collection('users').doc(uid).collection('notas');
-    const [notas,setNotas] = useState([])
-    const [isConnected, setIsConnected] = useState();
-    async function loadDataFromStorage(){
-        const notasData = await AsyncStorage.getItem('notas');
+  const [classificacoes, setClassificacoes] = useState({});
+  const [activeSections, setActiveSections] = useState([]);
+  const [activeTests, setActiveTests] = useState([]);
+  const [isConnected, setIsConnected] = useState();
+  const [nomeUtil,setNomeUtil] = useState()
+  
+  useEffect(() => {
+    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+      console.log(isConnected);
+      setIsConnected(state.isConnected);
+
+    });
+    
+    const getData = async () => {
+      const classificacoes = await AsyncStorage.getItem('classificacoes')
+      if(classificacoes !== null){
+        setClassificacoes(JSON.parse(classificacoes))
         
-        if (notasData !== null) {
-            setNotas(JSON.parse(notasData));
-            
-          }
       }
-      useEffect(() => {
-        const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
-          console.log(isConnected);
-          setIsConnected(state.isConnected);
-        });
+
+    } 
+
+    if(isConnected){
+      const getDataDatabase = async () => {
+        const nomeUtil = await AsyncStorage.getItem('nomeUtil');
       
-        if (isConnected) {
-          notasRef.onSnapshot((notasSnapshot) => {
-            const notas = [];
-      
-            notasSnapshot.forEach((notasDoc) => {
-              if (notasDoc.exists) {
-                notas.push(notasDoc.data());
-               
-              }
-            });
-      
-            
-      
-            if (notas.length > 0) {
-              setNotas(notas);
-              AsyncStorage.setItem('notas', JSON.stringify(notas));
-            } else {
-              setNotas([]);
-              AsyncStorage.removeItem('notas');
-            }
-          });
-        } else {
-          loadDataFromStorage();
-        }
-      
-        return () => {
-          unsubscribeNetInfo();
-        };
-      }, [isConnected]);
-      
-      
-      
-      
-      
-      
-      
-    useEffect(() => {
-        if (Platform.OS === 'android') {
-            if (UIManager.setLayoutAnimationEnabledExperimental) {
-                UIManager.setLayoutAnimationEnabledExperimental(true);
-            }
-        }
-    }, []);
-    return (
-        <>
-        <Header></Header>
-        
-            <View style={styles.container}>
-                <AccordionList
-                     data={notas}
-                     customTitle={item => <Text>{item.title}</Text>}
-                     customBody={item => <Text>{item.body}</Text>}
-                    animationDuration={400}
-                    expandMultiple={true}
-                />
-            </View>
-       
-        </>
-    );
+      const dbRef = firebase.database().ref(`/users/${nomeUtil}/classificacoes`);
+      dbRef.on('value', snapshot => {
+        setClassificacoes(snapshot.val());
+        AsyncStorage.setItem('classificacoes',JSON.stringify(snapshot.val()))
+      });
+    }
+    setTimeout(getDataDatabase, 1000);
+    }
+    else{
+      getData()
+
+    }
+    return () => {
+      unsubscribeNetInfo();
+    };
+  }, [isConnected,nomeUtil]);
+
+  const toggleExpanded = (collapsibleIndex, testIndex) => {
+    if (testIndex === undefined) {
+      let updatedActiveSections = [...activeSections];
+      if (updatedActiveSections.includes(collapsibleIndex)) {
+        updatedActiveSections = updatedActiveSections.filter(i => i !== collapsibleIndex);
+      } else {
+        updatedActiveSections.push(collapsibleIndex);
+      }
+      setActiveSections(updatedActiveSections);
+    } else {
+      let updatedActiveTests = [...activeTests];
+      const testIsActive = updatedActiveTests.some(
+        test => test.collapsibleIndex === collapsibleIndex && test.testIndex === testIndex
+      );
+      if (testIsActive) {
+        updatedActiveTests = updatedActiveTests.filter(
+          test => !(test.collapsibleIndex === collapsibleIndex && test.testIndex === testIndex)
+        );
+      } else {
+        updatedActiveTests.push({ collapsibleIndex, testIndex });
+      }
+      setActiveTests(updatedActiveTests);
+    }
+  };
+
+  return (
+    <View style={{flex:1}}>
+    <Header></Header>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+    
+    <View style={styles.container}>
+      <Text style={[global.h2,{marginBottom:10}]}>Classificações</Text>
+      {Object.keys(classificacoes).map((className, index) => (
+        <View key={index}>
+          <View style={{backgroundColor:'#778ca3',padding:10,marginBottom:10,marginTop:10,borderRadius:10}}>
+          <Text style={[global.h3,{color:'white'}]} onPress={() => toggleExpanded(index)}>{className}</Text>
+          </View>
+          <Collapsible collapsed={!activeSections.includes(index)}>
+            {classificacoes[className].map((test, testIndex) => (
+              <View key={testIndex}>
+                <View style={{backgroundColor:'#9abebb',padding:10,borderTopLeftRadius:10,borderTopRightRadius:10,marginTop:5}}>
+                <Text style={[global.h3,{color:'white',fontSize:16}]} onPress={() => [toggleExpanded(index, testIndex)]}>{test.DtaAv}</Text>
+                </View>
+                <Collapsible
+                    collapsed={
+                      !activeTests.some(
+                        test => test.collapsibleIndex === index && test.testIndex === testIndex
+                      )
+                    }
+                  >
+                  <View style={{backgroundColor:'white',marginBottom:10,borderBottomLeftRadius:10,borderBottomRightRadius:10,padding:10}}>
+                    <View style={{flexDirection:'row',marginBottom:10}}>
+                    <Text style={[global.p,{fontWeight:'bold'}]}>Tipo: </Text>
+                    <Text style={[global.p]}>{test.Tipo}</Text>
+                    </View>
+                    <View style={{flexDirection:'row',marginBottom:10}}>
+                    <Text style={[global.p,{fontWeight:'bold'}]}>Peso: </Text>
+                    <Text style={[global.p]}>{test.Peso}</Text>
+                    </View>
+                    <View style={{flexDirection:'row',marginBottom:10}}>
+                    <Text style={[global.p,{fontWeight:'bold'}]}>Escala: </Text>
+                    <Text style={[global.p]}>{test.Escala}</Text>
+                    </View>
+                    <View style={{flexDirection:'row',marginBottom:10}}>
+                    <Text style={[global.p,{fontWeight:'bold'}]}>Nota: </Text>
+                    <Text style={[global.p]}>{test.Nota}</Text>
+                    </View>
+                    <View style={{flexDirection:'row',marginBottom:10}}>
+                    <Text style={[global.p,{fontWeight:'bold'}]}>Professor: </Text>
+                    <Text style={[global.p]}>{test.Professor}</Text>
+                    </View>
+                  </View>
+                </Collapsible>
+              </View>
+            ))}
+          </Collapsible>
+        </View>
+      ))}
+    </View>
+    </ScrollView>
+    </View>
+  );
 };
 
 export default Classificacoes;
+
 const styles = StyleSheet.create({
-    container: {
-        paddingVertical: '2%',
-        paddingHorizontal: '3%',
-        height: '100%',
-        backgroundColor: '#e7e7e7',
-    },
+  container: {
+    paddingVertical: '2%',
+    paddingHorizontal: '3%',
+    height: '100%',
+  },
 });

@@ -18,10 +18,10 @@ export default function EventItem({ eventos }) {
     return (
         <>
             <Pressable style={styles.container} onPress={() => setModalVisible(true)}>
-                <Image source={{ uri: eventos.imagem }} style={styles.image}></Image>
+                <Image source={{ uri: eventos.image}} style={styles.image}></Image>
                 <View style={styles.content}>
-                    <Text style={global.h3}>{eventos.titulo}</Text>
-                    <Text style={global.p}>{eventos.desc}</Text>
+                    <Text style={global.h3}>{eventos.title}</Text>
+                    <Text style={global.p}>{eventos.description}</Text>
                 </View>
             </Pressable>
             

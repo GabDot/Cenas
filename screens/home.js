@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView, Button,RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, FlatList, ScrollView, Button,RefreshControl, ActivityIndicator } from 'react-native'
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Header from '../components/Header';
@@ -6,63 +6,70 @@ import EventItem from '../components/EventItem';
 import AgendaItem from '../components/AgendaItem';
 import { useState } from 'react';
 import { global } from "../styles/globals";
-import { auth } from '../firebase';
+import firebase from 'firebase/app';
 import { database } from '../firebase';
+import 'firebase/database';
+import Icon from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import EmentaItem from '../components/EmentaItem';
 import moment from 'moment/moment';
+import ErrorModal from '../components/ErrorModal';
 
 export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
 
-  const [item, setItem] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [agenda, setAgenda] = useState([]);
+  const [message,setMessage] = useState('')
+  const [ementaData, setEmentaData] = useState(null);
   const [ementa, setEmenta] = useState([]);
   const [cantinaHorario, setCantinaHorario] = useState();
-  const uid = auth.currentUser.uid
+ const [isLoading,setIsLoading] = useState(true);
   const [username, setUsername] = useState('');
-  const [turma, setTurma] = useState('');
-  const userRef = database.collection('users').doc(uid);
-  const eventosRef = database.collection('eventos');
-  const agendaRef = database.collection('agenda');
-  const ementaRef = database.collection('ementa');
-  const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
   const [agendaP, setAgendaP] = useState([])
-  const cantinaHorarioRef = database.collection('cantinahorario');
-  const [isConnected, setIsConnected] = useState();
-  const [changes,setChanges] = useState();
-  const [loaded, setLoaded] = useState(false);
+  const [nomeUtil,setNomeUtil] = useState('');
+  const [isModalVisible,setIsModalVisible] = useState(false)
+   const [isConnected, setIsConnected] = useState();
   const today = new Date().toISOString().split('T')[0];
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const handleConnectionChange = async (isConnected) => {
       if (isConnected) {
-        // Delete events that were deleted while offline
+        
+        const nomeUtil = await AsyncStorage.getItem('nomeUtil')
+        
+       
         const deletedEvents = await AsyncStorage.getItem('deletedEvents');
         const parsedDeletedEvents = deletedEvents ? JSON.parse(deletedEvents) : [];
         parsedDeletedEvents.forEach(id => {
-          agendaPRef.doc(id).delete();
+          firebase.database().ref(`users/${nomeUtil}/eventsP/${id}`).remove()
         });
         await AsyncStorage.removeItem('deletedEvents');
-  
-        // Update events that were edited while offline
-        const editedEvents = await AsyncStorage.getItem('editedEvents');
-        const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
-        parsedEditedEvents.forEach(event => {
-          agendaPRef.doc(event.id).update({
-            titulo: event.titulo
-          });
-        });
-        await AsyncStorage.removeItem('editedEvents');
-  
-        // Add new events that were added while offline
+ 
+        const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP`);
         const newEvents = await AsyncStorage.getItem('newEvents');
         const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
         parsedNewEvents.forEach(event => {
-          agendaPRef.doc(event.id).set(event);
+          const newEventRef = dbRef.child(event.id);
+          newEventRef.set(event);
         });
         await AsyncStorage.removeItem('newEvents');
+
+        const editedEvents = await AsyncStorage.getItem('editedEvents');
+        
+       
+        const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
+        await Promise.all(parsedEditedEvents.map(async (event) => {
+         
+          const editedEventsRef = dbRef.child(event.id);
+          const snapshot = await editedEventsRef.once('value');
+          if (snapshot.exists()) {
+            editedEventsRef.update(event);
+          } else {
+            editedEventsRef.set(event);
+          }
+        }));
+        await AsyncStorage.removeItem('editedEvents');
       }
     };
   
@@ -75,21 +82,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
       // Unsubscribe from network connection state changes
       unsubscribe();
     };
-  }, []);
-  
-  useEffect(() => {
-    if(!isConnected){
-      const loadDataFromStorage = async () => {
-        const storedAgendaP = await AsyncStorage.getItem('agendaP');
-        if (storedAgendaP) {
-          setAgendaP(JSON.parse(storedAgendaP));
-        }
-      };
-      loadDataFromStorage();
-
-    }
-   
-  }, []);
+  }, [isConnected]);
   
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -97,7 +90,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     });
     if(!isConnected){
     const asyncLoadData = async () => {
-      const storedAgendaP = await AsyncStorage.getItem('agendaP');
+      const storedAgendaP = await AsyncStorage.getItem('eventPHome');
       if (storedAgendaP) {
         setAgendaP(JSON.parse(storedAgendaP));
       }
@@ -121,17 +114,13 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
   
 
   async function loadDataFromStorage() {
-    const eventosData = await AsyncStorage.getItem('eventos');
-    const agendaData = await AsyncStorage.getItem('agenda');
-    const usernameData = await AsyncStorage.getItem('username');
-    const ementaData = await AsyncStorage.getItem('ementa');
-    const agendaPData = await AsyncStorage.getItem('agendaP')
-    const cantinaHorarioData = await AsyncStorage.getItem('cantinaHorario')
     
-    
-    if (eventosData !== null) {
-      setEventos(JSON.parse(eventosData));
-    }
+    const agendaData = await AsyncStorage.getItem('eventsHome');
+    const usernameData = await AsyncStorage.getItem('usernameHome');
+    const agendaPData = await AsyncStorage.getItem('eventPHome')
+    const ementaData = await AsyncStorage.getItem('ementaHome')
+    const cantinaHorario = await AsyncStorage.getItem('cantinahorario')
+    const eventos = await AsyncStorage.getItem('eventos')
     if (agendaData !== null) {
       setAgenda(JSON.parse(agendaData));
 
@@ -139,135 +128,137 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
     if (usernameData !== null) {
       setUsername(usernameData);
     }
-    if (ementaData !== null) {
-      setEmenta(JSON.parse(ementaData));
-      
-    }
+   
     if (agendaPData !== null) {
       setAgendaP(JSON.parse(agendaPData));
     }
-    if(cantinaHorario !== null){
-      setCantinaHorario(JSON.parse(cantinaHorarioData));
+    if (ementa !== null) {
+      setEmenta(JSON.parse(ementaData));
     }
+    if (ementa !== null) {
+      setEmenta(JSON.parse(ementaData));
+    }
+    if (cantinaHorario !== null) {
+      setCantinaHorario(JSON.parse(cantinaHorario));
+    }
+    if(eventos !== null){
+      setEventos(JSON.parse(eventos));
+    }
+   
   }
   useEffect(() => {
+   
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+      console.log(isConnected);
       setIsConnected(state.isConnected);
 
     });
     
-    console.log("correu")
-    loadDataFromStorage();
-    if(isConnected){
-      agendaPRef
-      .onSnapshot((agendaDoc) => {
-        const agendaP = []
-        agendaDoc.forEach((document) => {
-          const titulo = document.data().titulo;
-          const data = document.data().data;
-          const id = document.data().id;
-          agendaP.push({ data: data, titulo, id });
+    if (isConnected) {
+      const getData = async () => {
+        const nomeUtil = await AsyncStorage.getItem('nomeUtil');
+        const ano = await AsyncStorage.getItem('ano');
+        const turma = await AsyncStorage.getItem('turma');
+        setNomeUtil(nomeUtil);
+        const dbRef3 = firebase.database().ref(`users/${nomeUtil}/info`);
+    
+        dbRef3.on('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data && data.NomeAbrev) {
+            setUsername(data.NomeAbrev);
+          }
         });
-       
-
-        if (agendaP.length > 0) {
-          console.log(agendaP.length)
-          setAgendaP(agendaP);
-          AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
-        }
-        else {
-          setAgendaP([]);
-          AsyncStorage.removeItem('agendaP');
-        }
-      })
-    eventosRef.onSnapshot((querySnapshot) => {
-      const eventos = [];
-      querySnapshot.forEach((documentSnapshot) => {
-        eventos.push(documentSnapshot.data());
-      });
-      if (eventos.length > 0) {
-        setEventos(eventos);
-        AsyncStorage.setItem('eventos', JSON.stringify(eventos));
-      }
-      else {
-        setEventos([]);
-        AsyncStorage.removeItem('eventos');
-      }
-    });
-
-   ementaRef.onSnapshot((querySnapshot) => {
-      const ementa = [];
-      querySnapshot.forEach((documentSnapshot) => {
-        ementa.push(documentSnapshot.data() );
-      });
-      if (ementa.length > 0) {
-        setEmenta(ementa);
-        AsyncStorage.setItem('ementa', JSON.stringify(ementa));
-      }
-      else{
-        setEmenta([]);
-        AsyncStorage.removeItem('ementa');
-      }
-    });
-
-    userRef.onSnapshot((doc) => {
-      if (doc.exists) {
-        const username = doc.data().nome;
-        const turma = doc.data().turma;
-        setTurma(turma);
-        setUsername(username);
-        AsyncStorage.setItem('turma', turma);
-        AsyncStorage.setItem('username', username);
-        if (turma) {
-          agendaRef.doc(turma).collection('agenda')
-            .onSnapshot((agendaDoc) => {
-              const agenda = []
-              agendaDoc.forEach((document) => {
-                const titulo = document.data().titulo;
-                const data = document.data().data;
-                agenda.push({ data: data, titulo });
-              });
-              setAgenda(agenda);
-              if (agenda.length > 0) {
-                AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-              } else {
-                setAgenda([]);
-                AsyncStorage.removeItem('agenda');
-              }
-            })
-
-        }
-      } else {
-        console.log('No user document found with ID:', uid);
-      }
-    });
-    const dayOfWeek = moment().locale('pt').format('dddd');
-    console.log(dayOfWeek)
-    const cantinaHorarioRef = database.collection('cantinahorario').doc(dayOfWeek);
-      cantinaHorarioRef.onSnapshot((doc) => {
-        if (doc.exists) {
-          const { '12IG': cantinaHorario } = doc.data();
-          setCantinaHorario(cantinaHorario);
-          console.log(cantinaHorario)
-          AsyncStorage.setItem('cantinaHorario', JSON.stringify(cantinaHorario));
-        } else {
-          console.log("No such document");
-        }
-      });
-
-
-    console.log('database loaded');
-  
-
-    }
+        const dbRef = firebase.database().ref(`users/${nomeUtil}/events`);
+        const dbRef2 = firebase.database().ref(`users/${nomeUtil}/eventsP`);
+        const db = firebase.database();
+        db.ref('/ementa').on('value', snapshot => {
+          const data = snapshot.val();
+          const filteredData = Object.values(data).find(dayData => {
+            const date = moment(dayData.Dta, 'YYYY-M-D');
+            return date.isSame(moment(), 'day');
+          });
+          setEmenta(filteredData);
+          AsyncStorage.setItem('ementaHome',JSON.stringify(filteredData))
+          
+        });
       
+        const day = new Date()
+        const dayOfWeek = moment(day, 'YYYY-M-D').locale('pt-br').format('dddd')
+       console.log(ano)
+       console.log(turma)
+       console.log(dayOfWeek)
+        db.ref(`/cantinahorario/${ano}/${turma}/${dayOfWeek}`).on('value', snapshot => {
+          setCantinaHorario(snapshot.val());
+          AsyncStorage.setItem('cantinahorario',JSON.stringify(snapshot.val()))
+        });
+        const dbRef4 = firebase.database().ref('/eventos');
+      dbRef4.on('value', snapshot => {
+        setEventos(snapshot.val());
+        AsyncStorage.setItem('eventos',JSON.stringify(snapshot.val()))
+      });
 
-    return () => {
-      unsubscribeNetInfo();
-     
-    };
+    
+    
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        const futureDate = new Date();
+        futureDate.setHours(0, 0, 0, 0);
+        futureDate.setDate(futureDate.getDate() + 15);
+    
+        dbRef.on('value', (snapshot) => {
+          const data = snapshot.val();
+          const eventsArray = [];
+          for (let key in data) {
+            const eventDate = new Date(data[key].DtaIni);
+            if (
+              eventDate >= currentDate &&
+              eventDate <= futureDate &&
+              data[key].Tipo !== 'I'
+            ) {
+              eventsArray.push(data[key]);
+            }
+          }
+          setAgenda(eventsArray);
+          AsyncStorage.setItem('eventsHome', JSON.stringify(eventsArray));
+        });
+    
+        dbRef2.on('value', (snapshot) => {
+          const data = snapshot.val();
+          const eventsPArray = [];
+          for (let key in data) {
+            const eventDate = new Date(data[key].DtaIni);
+            if (
+              eventDate >= currentDate &&
+              eventDate <= futureDate &&
+              data[key].Tipo !== 'I' && 
+              data[key].Tipo !== 'F'
+            ) {
+              eventsPArray.push(data[key]);
+            }
+          }
+          if (eventsPArray.length > 0) {
+            setAgendaP(eventsPArray);
+            AsyncStorage.setItem('eventPHome', JSON.stringify(eventsPArray));
+          } else {
+            setAgendaP([]);
+            AsyncStorage.removeItem('eventPHome');
+          }
+        });
+        setIsLoading(false);
+      };
+      setTimeout(getData, 1500);
+    }
+    
+    else{
+      loadDataFromStorage();
+      setIsLoading(false)
+    }
+loadDataFromStorage();
+      return () => {
+        unsubscribeNetInfo();
+      };
   }, [isConnected,refreshing]);
-
+ 
  
  
 const wait = (timeout) => {
@@ -285,13 +276,21 @@ const wait = (timeout) => {
 
 
 
-  return (
 
-    <View style={{ flex: 1 }}>
+  return (
+    isLoading ? (
+      <View style={{ flex: 1 }}>
+         <Header></Header>
+         <ActivityIndicator size={100}></ActivityIndicator>
+        </View>
+        
+      ):(
+        <View style={{ flex: 1 }}>
 
 
 
       <Header></Header>
+      <ErrorModal visible={isModalVisible} message={message} onClose={() => setIsModalVisible(false)} ></ErrorModal>
       <ScrollView
       refreshControl={
         <RefreshControl
@@ -303,8 +302,14 @@ const wait = (timeout) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.title}>
+            <View style={{flexDirection: 'row',alignItems:'center'}}>
 
-            <Text style={global.h1}>Bem vindo,</Text>
+            <Text style={global.h1}>Bem vindo,</Text>{!isConnected && ( 
+            <TouchableOpacity onPress={() => [setIsModalVisible(true),setMessage('A aplicação está em modo offline, mas não te preocupes, grande parte das funcionalidades continuam a funcionar! Tu continuas a poder ver a tua agenda, ementa e informações, criar, editar e apagar eventos pessoais.')]}>
+              <Icon style={{marginLeft:120}}name="wifi-off" size={30} color={'white'}></Icon>
+              </TouchableOpacity>
+            )}
+            </View>
             <Text style={global.p}>{username}</Text>
           </View>
 
@@ -316,16 +321,22 @@ const wait = (timeout) => {
               showsHorizontalScrollIndicator={false}
               horizontal={true}
               contentContainerStyle={[styles.eventos, { flexDirection: "row" }]}
-              data={[...agenda, ...agendaP].sort((a, b) => a.data.localeCompare(b.data))}
+              data={[...agenda, ...agendaP].sort((a, b) => {
+                if (a.DtaIni && b.DtaIni) {
+                  return a.DtaIni.localeCompare(b.DtaIni);
+                } else {
+                  return 0;
+                }
+              })}
               renderItem={({ item }) => (
                 <AgendaItem agenda={item} navigation={navigation} />
               )}
             />
           }
           <Text style={[{ marginTop: 30 }, global.h2]}>Eventos</Text>
-          {eventos.length === 0 ? 
+           {eventos.length === 0 ?  
           <Text style={[{ marginTop: 10 }, global.p]}>Não existem eventos marcados</Text>
-          : <FlatList
+           : <FlatList
 
           showsHorizontalScrollIndicator={false}
           horizontal={true}
@@ -335,11 +346,11 @@ const wait = (timeout) => {
             <EventItem eventos={item} />
           )} />
 
-        }
-        {!cantinaHorario ? 
+        } 
+         {!ementa ? (
         <View style={{ height: 80 ,
           width: '100%',
-          backgroundColor: '#D0247A',
+          backgroundColor: '#9abebb',
           justifyContent: 'center',
           alignItems:'center',
           borderRadius: 10,
@@ -348,9 +359,10 @@ const wait = (timeout) => {
           paddingVertical: 6,}}>
         <Text style={[global.h3,{color:'white'}]}>Não há almoço hoje</Text>
         </View>
-        :<EmentaItem ementa={ementa} cantinaHorario={cantinaHorario}></EmentaItem>
-      }
-          
+         )
+        :(<EmentaItem ementa={ementa} cantinaHorario={cantinaHorario}></EmentaItem>)
+}
+      
          
 
 
@@ -359,11 +371,15 @@ const wait = (timeout) => {
       </ScrollView>
       </ScrollView>
     </View>
+
+      )
+    
   )
 }
 
 const styles = StyleSheet.create({
   title: {
+    marginTop:10,
     marginBottom: 20
   },
   QuickNav: {

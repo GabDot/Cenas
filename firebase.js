@@ -1,32 +1,18 @@
-// Import the functions you need from the SDKs you need
-import * as firebase from 'firebase';
-import 'firebase/firestore';
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import firebase from "firebase/app";
+import "firebase/database";
 
-// Your web app's Firebase configuration
+// TODO: Replace the following with your app's Firebase project configuration
+// See: https://firebase.google.com/docs/web/learn-more#config-object
 const firebaseConfig = {
-  apiKey: "AIzaSyAtHWx5a0Ay-0ilj1mlgtb0qxACBNLrMe8",
-  authDomain: "areareservada-b5d8c.firebaseapp.com",
-  projectId: "areareservada-b5d8c",
-  storageBucket: "areareservada-b5d8c.appspot.com",
-  messagingSenderId: "590857088944",
-  appId: "1:590857088944:web:7eb8a1d734e1610b52b075"
+  // ...
+  // The value of `databaseURL` depends on the location of the database
+  databaseURL: "https://areareservada-b5d8c-default-rtdb.europe-west1.firebasedatabase.app/",
 };
 
 // Initialize Firebase
-let app;
-if(firebase.apps.length == 0){
-    app = firebase.initializeApp(firebaseConfig);
-    
+firebase.initializeApp(firebaseConfig);
 
-}
-else{
-    app=firebase.app();
-}
-firebase.firestore().settings({ experimentalAutoDetectLongPolling: true }); 
-const auth = firebase.auth();
-const database = firebase.firestore();
-firebase.firestore.setLogLevel("silent");
+
+// Initialize Realtime Database and get a reference to the service
+const database = firebase.database();
 export {database};
-export {auth};

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl } from 'react-native';
+import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl,ActivityIndicator } from 'react-native';
 import { Calendar, LocaleConfig, CalendarList } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header';
 import { global } from "../styles/globals";
+import firebase from 'firebase/app';
 import { database } from '../firebase';
-import { auth } from '../firebase';
+import 'firebase/database';
 import moment from 'moment/moment';
 import EventPList from '../components/EventPList';
 import EventList from '../components/EventList';
@@ -19,43 +20,82 @@ const AgendaScreen = React.memo(({route}) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModal2Visible, setIsModal2Visible] = useState(false);
-  const uid = auth.currentUser.uid
   const [turma, setTurma] = useState('');
-  const agendaRef = database.collection('agenda');
   const [eventDates, setEventDates] = useState([]);
+  const [nomeUtil,setNomeUtil] = useState('');
   const [eventPDates, setPEventDates] = useState([]);
   const [newEvent, setNewEvent] = useState('');
   const today = new Date().toISOString().split('T')[0]; // get today's date in ISO format
   const modalPosition = React.useRef(new Animated.Value(0)).current;
-  const agendaPRef = database.collection('users').doc(uid).collection('agendaP')
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage,setErrorMessage] = useState('');
+  const [isLoading,setIsLoading] = useState(true)
 
+  useEffect(() => {
+    const handleConnectionChange = async (isConnected) => {
+      if (isConnected) {
+        const nomeUtil = await AsyncStorage.getItem('nomeUtil')
+        // Delete events that were deleted while offline
+        const deletedEvents = await AsyncStorage.getItem('deletedEvents');
+        const parsedDeletedEvents = deletedEvents ? JSON.parse(deletedEvents) : [];
+        parsedDeletedEvents.forEach(id => {
+          firebase.database().ref(`users/${nomeUtil}/eventsP/${id}`).remove()
+        });
+        await AsyncStorage.removeItem('deletedEvents');
+ 
+        const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP`);
+        const newEvents = await AsyncStorage.getItem('newEvents');
+        const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
+        parsedNewEvents.forEach(event => {
+          const newEventRef = dbRef.child(event.id);
+          newEventRef.set(event);
+        });
+        await AsyncStorage.removeItem('newEvents');
+
+        const editedEvents = await AsyncStorage.getItem('editedEvents');
+        
+        console.log(`nomeUtil: ${nomeUtil}`);
+        const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
+        await Promise.all(parsedEditedEvents.map(async (event) => {
+          console.log(`event.id: ${event.id}`);
+          const editedEventsRef = dbRef.child(event.id);
+          const snapshot = await editedEventsRef.once('value');
+          if (snapshot.exists()) {
+            editedEventsRef.update(event);
+          } else {
+            editedEventsRef.set(event);
+          }
+        }));
+        await AsyncStorage.removeItem('editedEvents');
+      }
+    };
+  
+    // Subscribe to network connection state changes
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      handleConnectionChange(state.isConnected);
+    });
+  
+    return () => {
+      // Unsubscribe from network connection state changes
+      unsubscribe();
+    };
+  }, [isConnected]);
+  
   const wait = (timeout) => {
     return new Promise(resolve => setTimeout(resolve, timeout));
   }
-  
-  
-    
-  
+
     const onRefresh = () => {
       setRefreshing(true);
-      // Call a function to fetch new data here
+      console.log("refreshing?")
       wait(2000).then(() => setRefreshing(false));
     };
   
 const currentDate = moment().format("YYYY-MM-DD");
   const [isConnected, setIsConnected] = useState();
-  function formatDate(timestamp) {
-    const date = new Date(timestamp.seconds * 1000);
-    const year = date.getFullYear().toString();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
   useEffect(() => {
     const loadDataFromStorage = async () => {
-      const storedAgendaP = await AsyncStorage.getItem('agendaP');
+      const storedAgendaP = await AsyncStorage.getItem('eventsP');
       if (storedAgendaP) {
         setPEventDates(JSON.parse(storedAgendaP));
       }
@@ -69,10 +109,10 @@ const currentDate = moment().format("YYYY-MM-DD");
     });
   
     const asyncLoadData = async () => {
-      const storedAgendaP = await AsyncStorage.getItem('agendaP');
-      if (storedAgendaP) {
-        setPEventDates(JSON.parse(storedAgendaP));
-      }
+       const storedAgendaP = await AsyncStorage.getItem('eventsP');
+       if (storedAgendaP) {
+         setPEventDates(JSON.parse(storedAgendaP));
+       }
     };
   
     asyncLoadData();
@@ -108,80 +148,81 @@ const currentDate = moment().format("YYYY-MM-DD");
     },[])
     
   async function loadDataFromStorage() {
-    const agendaData = await AsyncStorage.getItem('agenda');
+    const agendaData = await AsyncStorage.getItem('events');
     const turmaData = await AsyncStorage.getItem('turma');
-    const agendaPData = await AsyncStorage.getItem('agendaP');
-    setTurma(turmaData);
-
-    if (agendaData !== null) {
-      const parsedData = JSON.parse(agendaData)
-       
+    const agendaPData = await AsyncStorage.getItem('eventP');
+    console.log("agendapdata",agendaPData);
+    console.log(eventPDates)
     
-      setEventDates(parsedData);
-    }
-    if (agendaPData !== null) {
-      const parsedPData = JSON.parse(agendaPData);
+    setTurma(turmaData);
+   
+    if (agendaData !== null) {
+      setEventDates(JSON.parse(agendaData));
 
-      setPEventDates(parsedPData);
     }
+    if(agendaPData !== null){
+      setPEventDates(JSON.parse(agendaPData));
+    }
+   
 
   }
 
 
   useEffect(() => {
+   
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       console.log(isConnected);
       setIsConnected(state.isConnected);
 
     });
-    loadDataFromStorage();
-
+    
     if(isConnected){
-
-      if (turma) {
-        agendaRef.doc(turma).collection('agenda')
-          .onSnapshot((agendaDoc) => {
-            const agenda = []
-            console.log("mudou")
-            agendaDoc.forEach((document) => {
-              const titulo = document.data().titulo;
-              const data = document.data().data;
-              agenda.push({ data: data, titulo });
-            });
-            setEventDates(agenda);
-
-            if (agenda.length > 0) {
-              AsyncStorage.setItem('agenda', JSON.stringify(agenda));
-
-            }
-
-          })
-      }
-      agendaPRef
-        .onSnapshot((agendaDoc) => {
-          const agendaP = []
-          agendaDoc.forEach((document) => {
-            const titulo = document.data().titulo;
-            const data = document.data().data;
-            const id = document.data().id;
-            agendaP.push({ data: data, titulo, id });
-          });
-          setPEventDates(agendaP);
-
-          if (agendaP.length > 0) {
-            AsyncStorage.setItem('agendaP', JSON.stringify(agendaP));
-
-          }
-
-        })
-      }
+    
+    const getData = async () => {
+      const nomeUtil = await AsyncStorage.getItem('nomeUtil')
+      setNomeUtil(nomeUtil);
+      const dbRef = firebase.database().ref(`users/${nomeUtil}/events`);
+  dbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    const eventsArray = [];
+    for (let key in data) {
+      eventsArray.push(data[key]);
+    }
+    setEventDates(eventsArray);
+    AsyncStorage.setItem('events',JSON.stringify(eventsArray))
+    
+  });
+  
+  const dbRef2 = firebase.database().ref(`users/${nomeUtil}/eventsP`);
+  dbRef2.on('value', (snapshot) => {
+    const data = snapshot.val();
+    const eventsPArray = [];
+    for (let key in data) {
+      eventsPArray.push(data[key]);
+    }
+    if(eventsPArray.length>0){
+      setPEventDates(eventsPArray);
+      AsyncStorage.setItem('eventP',JSON.stringify(eventsPArray))
+    }
+    else{
+      setPEventDates([]);
+      AsyncStorage.removeItem('eventP')
+    }
+  });
+  setIsLoading(false);
+}
+getData()
+    }
+    
+else{
+  setIsLoading(false);
+}
+loadDataFromStorage();
       return () => {
         unsubscribeNetInfo();
       };
-  }, [isConnected,refreshing]);
+  }, [isConnected,refreshing,isLoading]);
   
-
-
   const onDayPress = useCallback((day) => {
     setSelectedDate(day.dateString);
   }, []);
@@ -222,76 +263,155 @@ const currentDate = moment().format("YYYY-MM-DD");
     const selectedDateObj = new Date(selectedDate);
     selectedDateObj.setHours(0, 0, 0, 0);
   
-    if (selectedDateObj.getTime() >= today && newEvent.length>3 && newEvent.length<20) {
-      // Retrieve existing events from AsyncStorage
-      const existingEvents = await AsyncStorage.getItem('agendaP');
+    if (selectedDateObj.getTime() >= today && newEvent.length > 3 && newEvent.length < 20) {
+      const existingEvents = await AsyncStorage.getItem('eventP');
       const eventP = existingEvents ? JSON.parse(existingEvents) : [];
   
-      const eventPRef = agendaPRef.doc();
+      const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP`);
+      const newEventRef = dbRef.push();
       const eventPData = {
-        titulo: newEvent,
-        data: selectedDate,
-        id: eventPRef.id
+        Titulo: newEvent,
+        DtaIni: selectedDate,
+        id: newEventRef.key,
       };
       eventP.push(eventPData);
       setPEventDates(eventP);
   
-      // Check if the device is offline
       if (!isConnected) {
-        // Store the new event in AsyncStorage
         const newEvents = await AsyncStorage.getItem('newEvents');
         const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
         parsedNewEvents.push(eventPData);
         await AsyncStorage.setItem('newEvents', JSON.stringify(parsedNewEvents));
+      
+        // Check if the event is today or within the next 15 days
+        const currentDate = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 15);
+        const eventDate = new Date(eventPData.DtaIni);
+        if (eventDate >= currentDate && eventDate <= futureDate) {
+          // Add the event to eventsHome
+          const getEventsHome = await AsyncStorage.getItem('eventsHome');
+          const parsedEventsHome = getEventsHome ? JSON.parse(getEventsHome) : [];
+          const eventsHome = [...parsedEventsHome, eventPData];
+          AsyncStorage.setItem('eventsHome', JSON.stringify(eventsHome));
+        }
       } else {
-        // Add the new event to the database
-        eventPRef.set(eventPData);
+        newEventRef.set(eventPData);
       }
   
-      AsyncStorage.setItem('agendaP', JSON.stringify(eventP));
+      AsyncStorage.setItem('eventP', JSON.stringify(eventP));
     } else {
-      setIsModal2Visible(true)
-      if(selectedDateObj.getTime() <= today){
-        setErrorMessage('Não é possível criar um evento pessoal para uma data no passado')
+      setIsModal2Visible(true);
+      if (selectedDateObj.getTime() <= today) {
+        setErrorMessage('Não é possível criar um evento pessoal para uma data no passado');
+      } else if (newEvent.length < 3) {
+        setErrorMessage('O nome dado ao evento não tem caracteres suficientes');
+      } else if (newEvent.length > 20) {
+        setErrorMessage('O nome dado ao evento tem demasiado caracteres');
       }
-      else if(newEvent.length<3 ){
-        setErrorMessage('O nome dado ao evento não tem caracteres suficientes')
-      }
-      else if(newEvent.length>20 ){
-        setErrorMessage('O nome dado ao evento tem demasiado caracteres')
-      }
-
-      
     }
   };
-
-
-
   const markedDates = useMemo(() => {
-    const allDates = [...eventDates, ...eventPDates];
-    const markedDatesObj = allDates.reduce((obj, date) => {
-      obj[date.data] = {
+    const allEventDates = [...eventDates, ...eventPDates];
+    const markedDatesObj = allEventDates.reduce((obj, event) => {
+      let color;
+      let textColor;
+      let startingDay;
+      let endingDay;
+      switch (event.Tipo) {
+        case 'TST':
+          color = '#4b6584';
+          textColor = 'white';
+          startingDay = true;
+          endingDay = true;
+          break;
+        case 'F':
+          const previousEventIndex = eventDates.indexOf(event) - 1;
+          const nextEventIndex = eventDates.indexOf(event) + 1;
+          if (
+            previousEventIndex >= 0 &&
+            nextEventIndex < eventDates.length &&
+            eventDates[previousEventIndex].Tipo === 'I' &&
+            eventDates[nextEventIndex].Tipo === 'I'
+          ) {
+            color = '#C7254E';
+            textColor = 'white'
+          } else {
+            color='#C7254E'
+            startingDay = true;
+            endingDay = true;
+          }
+          break;
+        case 'G':
+          color = '#38ada9';
+          textColor = 'white';
+          startingDay = true;
+          endingDay = true;
+          break;
+        case 'I':
+          color = '#e55039';
+          textColor = 'white';
+          const eventsWithSameTitle = eventDates.filter(
+            e => e.Tipo === 'I' && e.Titulo === event.Titulo
+          );
+          const minDate = eventsWithSameTitle.reduce(
+            (minDate, e) => (e.DtaIni < minDate ? e.DtaIni : minDate),
+            event.DtaIni
+          );
+          const maxDate = eventsWithSameTitle.reduce(
+            (maxDate, e) => (e.DtaIni > maxDate ? e.DtaIni : maxDate),
+            event.DtaIni
+          );
+          if (event.DtaIni === minDate) {
+            startingDay = true;
+          }
+          if (event.DtaIni === maxDate) {
+            endingDay = true;
+          }
+          break;
+        default:
+          color = '#9b59b6'
+          startingDay = true;
+          endingDay = true;
+      }
+  
+      const isEventP = eventPDates.includes(event);
+      obj[event.DtaIni] = {
         selected: true,
-        title: date.titulo,
-        color: 'blue',
+        title: event.Titulo,
+        color: isEventP ? '#beac9a' : color,
+        textColor,
+        startingDay: isEventP ? true : startingDay,
+        endingDay: isEventP ? true : endingDay,
       };
       return obj;
     }, {});
-
+  
     if (selectedDate) {
+      const today = new Date().toISOString().slice(0, 10);
+      const existingTodayMarkedDateObj = markedDatesObj[today];
+      if (existingTodayMarkedDateObj) {
+        markedDatesObj[today] = {
+          ...existingTodayMarkedDateObj,
+          selected: true,
+          color: '#CAD3C8',
+          startingDay: true,
+          endingDay: true,
+        };
+      } else {
+        markedDatesObj[today] = {
+          textColor: '#0984e3',
+        };
+      }
       const existingMarkedDateObj = markedDatesObj[selectedDate];
       markedDatesObj[selectedDate] = {
         ...existingMarkedDateObj,
-
         marked: true,
       };
     }
-
+  
     return markedDatesObj;
   }, [eventDates, eventPDates, selectedDate]);
-
-
-  
   const currentYear = moment().format('YYYY');
   const lastYear = moment().subtract(1, 'year').format('YYYY');
 
@@ -316,97 +436,106 @@ const currentDate = moment().format("YYYY-MM-DD");
 
 
   return (
-
-    <>
+!isLoading ? (
+  <>
     
-      <Modal
-        animationType='fade'
-        visible={isModalVisible}
-        onRequestClose={() => setIsModalVisible(false)}
-        transparent={true}
-      >
-        <View style={styles.modalContainer}>
+  <Modal
+    animationType='fade'
+    visible={isModalVisible}
+    onRequestClose={() => setIsModalVisible(false)}
+    transparent={true}
+  >
+    <View style={styles.modalContainer}>
 
-          <View style={styles.modalContent}>
-            <TouchableOpacity style={[styles.closeButton]} onPress={closeModal}>
-              <Text style={global.p}>X</Text>
-            </TouchableOpacity>
-            <Text style={global.h2}>Criar evento</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Titulo do evento"
-              onChangeText={text => setNewEvent(text)}
-              value={newEvent}
-            /><View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
-                <Text style={[global.p, { color: 'white' }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.submitButton} onPress={() => {
-                submitEvent();
-                closeModal();
-              }}>
-
-                <Text style={[global.p, { color: 'white' }]} >Save</Text>
-              </TouchableOpacity>
-
-            </View>
-          </View>
-        </View>
-      </Modal>
-     <ErrorModal visible={isModal2Visible} onClose={() => setIsModal2Visible(false)} message={errorMessage}></ErrorModal>
-
-      <Header></Header>
-      <ScrollView
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
-      }
-    >
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <Calendar
-          onDayPress={onDayPress}
-          markedDates={markedDates}
-          pagingEnabled={true}
-          hideExtraDays={true}
-          firstDay={1}
-          minDate={minDate}
-          maxDate={maxDate}
-          theme={{
-            backgroundColor: 'rgb(242,242,242)',
-            calendarBackground: 'rgb(242,242,242)',
-            textMonthFontFamily: 'sans-bold',
-            textMonthFontSize: 36,
-            monthTextColor: '#1E1E1E',
-
-
-          }}
-          
-        />
-
-        <Text style={[global.h2, { marginLeft: 20, marginTop: 20, color: 'rgba(30, 30, 30, 0.63)' }]}>{selectedDate}</Text>
-        <EventList
-          events={eventDates}
-          selectedDate={selectedDate}
-          noEventsMessage={noEventsMessage}
-        />
-        <EventPList
-          events={eventPDates}
-          selectedDate={selectedDate}
-          noEventsMessage={noEventsMessage2}
-          isConnected={isConnected}
-        />
-
-
-        <View style={styles.addEvent}>
-          <TouchableOpacity style={styles.circleButton} onPress={openModal}>
-            <Text style={styles.plus}>+</Text>
+      <View style={styles.modalContent}>
+        <TouchableOpacity style={[styles.closeButton]} onPress={closeModal}>
+          <Text style={global.p}>X</Text>
+        </TouchableOpacity>
+        <Text style={global.h2}>Criar evento</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Titulo do evento"
+          onChangeText={text => setNewEvent(text)}
+          value={newEvent}
+        /><View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+          <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
+            <Text style={[global.p, { color: 'white' }]}>Cancel</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.submitButton} onPress={() => {
+            submitEvent();
+            closeModal();
+          }}>
+
+            <Text style={[global.p, { color: 'white' }]} >Save</Text>
+          </TouchableOpacity>
+
         </View>
-      </ScrollView>
-      </ScrollView>
-    </>
+      </View>
+    </View>
+  </Modal>
+ <ErrorModal visible={isModal2Visible} onClose={() => setIsModal2Visible(false)} message={errorMessage}></ErrorModal>
+
+  <Header></Header>
+  <ScrollView
+  refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    />
+  }
+>
+  <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+    <Calendar
+      onDayPress={onDayPress}
+      markingType={'period'}
+      markedDates={markedDates}
+      pagingEnabled={true}
+      hideExtraDays={true}
+      firstDay={1}
+      minDate={minDate}
+      maxDate={maxDate}
+      theme={{
+        backgroundColor: 'rgb(242,242,242)',
+        calendarBackground: 'rgb(242,242,242)',
+        textMonthFontFamily: 'sans-bold',
+        textMonthFontSize: 36,
+        monthTextColor: '#1E1E1E',
+      }}
+      
+    />
+
+    <Text style={[global.h2, { marginLeft: 20, marginTop: 20, color: 'rgba(30, 30, 30, 0.63)' }]}> {selectedDate}</Text>
+    <EventList
+      events={eventDates}
+      selectedDate={selectedDate}
+      noEventsMessage={noEventsMessage}
+    />
+    <EventPList
+      events={eventPDates}
+      selectedDate={selectedDate}
+      noEventsMessage={noEventsMessage2}
+      isConnected={isConnected}
+      onRefresh={onRefresh}
+    />
+
+
+    <View style={styles.addEvent}>
+      <TouchableOpacity style={styles.circleButton} onPress={openModal}>
+        <Text style={styles.plus}>+</Text>
+      </TouchableOpacity>
+    </View>
+  </ScrollView>
+  </ScrollView>
+</>
+
+):(
+  <View style={{flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',}}>
+       <ActivityIndicator size={100} />
+        </View>
+)
+   
   );
 });
 const styles = StyleSheet.create({
@@ -417,7 +546,7 @@ const styles = StyleSheet.create({
     right: 16,
   },
   circleButton: {
-    backgroundColor: '#4B98A3',
+    backgroundColor: '#9abebb',
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -452,7 +581,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   submitButton: {
-    backgroundColor: '#337AB7',
+    backgroundColor: '#778ca3',
     padding: 5,
     width: 100,
     height: 50,
@@ -466,7 +595,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   cancelButton: {
-    backgroundColor: '#C7254E',
+    backgroundColor: '#be9a9b',
     padding: 5,
     width: 100,
     height: 50,

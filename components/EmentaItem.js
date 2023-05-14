@@ -17,7 +17,7 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     };
 
     return (
-      ementa && ementa[0] &&
+     
       <>
       
       
@@ -26,8 +26,8 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
             {ementa != '' ? (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ width: '70%' }}>
-                  <Text style={[global.h3,{color:'white',fontSize:17}]}>{ementa[0][today]['meat']} </Text>
-                  <Text style={[global.p,{color:'#DEDEDE'}]}>Hoje almoças ás {cantinaHorario}</Text>
+                  <Text style={[global.h3,{color:'white',fontSize:17}]}>{ementa.Carne} </Text>
+                  <Text style={[global.p,{color:'#DEDEDE'}]}>Hoje almoças as {cantinaHorario}</Text>
                 </View>
                 <Icon2 name="chevron-small-right" size={40} color="white" style={{ marginRight: 15 }} />
               </View>
@@ -41,7 +41,7 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
         <View style={styles.centeredView}>
           <View style={styles.modalContainer}>
             <Text style={[global.h2,{color:'white'}]}>Ementa</Text>
-            {Object.entries(ementa[0][today]).map(([key, value]) => (
+            {Object.entries(ementa).map(([key, value]) => (
               <Text key={key} style={styles.modalText}>
                 <Text style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{key}: </Text>
                 {value}
@@ -63,16 +63,15 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     ementaItem: {
       height: 'auto',
       width: '100%',
-      backgroundColor: '#D0247A',
+      backgroundColor: '#9abebb',
       justifyContent: 'center',
       borderRadius: 10,
-      marginTop: 10,
       zIndex: 2,
       padding:15,
      
     },
     modalContainer: {
-      backgroundColor: '#D0247A',
+      backgroundColor: '#9abebb',
       borderRadius: 10,
       padding:30,
     },
@@ -86,7 +85,6 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   closeButton: {
