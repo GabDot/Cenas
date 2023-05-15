@@ -77,12 +77,15 @@ const Classificacoes = () => {
   };
 
   return (
+    classificacoes && 
     <View style={{flex:1}}>
     <Header></Header>
+    
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
     
     <View style={styles.container}>
       <Text style={[global.h2,{marginBottom:10}]}>Classificações</Text>
+      
       {Object.keys(classificacoes).map((className, index) => (
         <View key={index}>
           <View style={{backgroundColor:'#778ca3',padding:10,marginBottom:10,marginTop:10,borderRadius:10}}>
@@ -130,6 +133,7 @@ const Classificacoes = () => {
         </View>
       ))}
     </View>
+    
     </ScrollView>
     </View>
   );
