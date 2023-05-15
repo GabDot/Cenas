@@ -9,13 +9,15 @@ export const global = StyleSheet.create({
         paddingBottom: 10,
     },
     h2: {
-        fontFamily: 'sans-bold',
+        fontFamily: 'sans-semibold',
+        letterSpacing:1,
         color: '#1E1E1E',
-        fontSize: 25
+        textTransform:'uppercase',
+        fontSize: 22
     },
     h3: {
         fontFamily: 'sans-bold',
-        fontSize: 20,
+        fontSize: 17,
         color: '#1E1E1E',
     },
     p: {

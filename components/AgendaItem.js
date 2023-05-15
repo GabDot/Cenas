@@ -7,17 +7,17 @@ import { useEffect, useLayoutEffect, useState } from "react";
 
 export default function AgendaItem({ agenda, navigation }) {
     const [formattedDate, setFormattedDate] = useState('');
-  
+    moment.locale('pt-br');
     useEffect(() => {
       const date = moment(agenda.DtaIni, 'YYYY-MM-DD');
-      moment.locale('pt-br');
+      
       const formattedDate = date.format('dddd, D [de] MMMM [de] YYYY');
       setFormattedDate(formattedDate);
     }, [agenda.DtaIni]);
   
     let color;
     if (agenda.Tipo === 'TST') {
-      color = '#4b6584';
+      color = '#778ca3';
     } else if (agenda.Tipo === 'F') {
       color = '#C7254E';
     } else if (agenda.Tipo === 'G') {
@@ -41,7 +41,7 @@ export default function AgendaItem({ agenda, navigation }) {
         >
           <View style={[styles.color, { backgroundColor: color }]}></View>
           <View style={styles.content}>
-            <Text style={global.h3}>{agenda.Titulo}</Text>
+            <Text style={[global.h3,{marginTop:-5}]}>{agenda.Titulo}</Text>
             <Text style={global.p}>{formattedDate}</Text>
           </View>
         </Pressable>
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
         elevation: -1,
         bottom: 20,
         width: 290,
-        height: 70,
+        height: 65,
         borderTopRightRadius: 10,
         borderTopLeftRadius: 10,
     }

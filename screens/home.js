@@ -177,8 +177,15 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
             const date = moment(dayData.Dta, 'YYYY-M-D');
             return date.isSame(moment(), 'day');
           });
-          setEmenta(filteredData);
+          if(filteredData){
+            setEmenta(filteredData);
           AsyncStorage.setItem('ementaHome',JSON.stringify(filteredData))
+          }
+          else{
+            setEmenta(null)
+            AsyncStorage.removeItem('ementaHome')
+          }
+          
           
         });
       
@@ -202,8 +209,9 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
         const currentDate = new Date();
         currentDate.setHours(0, 0, 0, 0);
         const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 16);
         futureDate.setHours(0, 0, 0, 0);
-        futureDate.setDate(futureDate.getDate() + 15);
+        
     
         dbRef.on('value', (snapshot) => {
           const data = snapshot.val();
@@ -306,7 +314,7 @@ const wait = (timeout) => {
 
             <Text style={global.h1}>Bem vindo,</Text>{!isConnected && ( 
             <TouchableOpacity onPress={() => [setIsModalVisible(true),setMessage('A aplicação está em modo offline, mas não te preocupes, grande parte das funcionalidades continuam a funcionar! Tu continuas a poder ver a tua agenda, ementa e informações, criar, editar e apagar eventos pessoais.')]}>
-              <Icon style={{marginLeft:120}}name="wifi-off" size={30} color={'white'}></Icon>
+              <Icon style={{marginLeft:120}}name="wifi-off" size={30} color={'#1E1E1E'}></Icon>
               </TouchableOpacity>
             )}
             </View>
@@ -350,13 +358,12 @@ const wait = (timeout) => {
          {!ementa ? (
         <View style={{ height: 80 ,
           width: '100%',
-          backgroundColor: '#9abebb',
-          justifyContent: 'center',
+          backgroundColor: '#D0247A',
+          justifyContent:'center',
           alignItems:'center',
           borderRadius: 10,
           marginTop: 20,
-          zIndex: 2,
-          paddingVertical: 6,}}>
+         }}>
         <Text style={[global.h3,{color:'white'}]}>Não há almoço hoje</Text>
         </View>
          )

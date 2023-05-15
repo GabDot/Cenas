@@ -70,14 +70,14 @@ const Ementa = () => {
             <View
               style={[
                 styles.container,
-                moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { backgroundColor: '#9abebb' },
+                moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { backgroundColor: '#D0247A' },
               ]}
             >
               <Text
                 style={[
                   {
                     borderBottomWidth: 1,
-                    paddingVertical: 10,
+                    
                     marginBottom: 10,
                     borderBottomColor: '#B5B4B4',
                   },
@@ -161,7 +161,8 @@ export default Ementa;
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal:18,
-        paddingVertical:10
+        paddingVertical:25
+        
     },
     title:{
       

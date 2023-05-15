@@ -63,7 +63,7 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
     ementaItem: {
       height: 'auto',
       width: '100%',
-      backgroundColor: '#9abebb',
+      backgroundColor: '#D0247A',
       justifyContent: 'center',
       borderRadius: 10,
       zIndex: 2,
@@ -71,7 +71,7 @@ export default function EmentaItem({ ementa,cantinaHorario }) {
      
     },
     modalContainer: {
-      backgroundColor: '#9abebb',
+      backgroundColor: '#D0247A',
       borderRadius: 10,
       padding:30,
     },

@@ -142,10 +142,8 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
   }, []);
   const handleSignOut = async () => {
     setIsLoggedIn(false);
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('eventP');
-    await AsyncStorage.removeItem('events');
-    await AsyncStorage.removeItem('data');
+   AsyncStorage.clear()
+
   }
     return (
        !isLoading ? (
@@ -159,22 +157,22 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
                <View style={styles.body}>
                    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                    <View style={styles.section}>
-                        <Text style={[global.p,{fontSize:18,marginBottom:5}]}>Número</Text>
-                        <Text style={[global.h3,{fontSize:18}]}>{data.NumAluno}</Text>
+                        <Text style={[global.p,{fontSize:17,marginBottom:5}]}>Número</Text>
+                        <Text style={[global.h3,{fontSize:17}]}>{data.NumAluno}</Text>
                     </View>
                     <View style={styles.section}>
-                        <Text style={[global.p,{fontSize:18,marginBottom:5}]}>Ano</Text>
-                        <Text style={[global.h3,{fontSize:18}]}>{data.Ano}</Text>
+                        <Text style={[global.p,{fontSize:17,marginBottom:5}]}>Ano</Text>
+                        <Text style={[global.h3,{fontSize:17}]}>{data.Ano}</Text>
                     </View>
                     <View style={styles.section}>
-                        <Text style={[global.p,{fontSize:18,marginBottom:5}]}>Turma</Text>
-                        <Text style={[global.h3,{fontSize:18}]}>{data.Turma}</Text>
+                        <Text style={[global.p,{fontSize:17,marginBottom:5}]}>Turma</Text>
+                        <Text style={[global.h3,{fontSize:17}]}>{data.Turma}</Text>
                     </View>
 
                 </ScrollView>
                 
-                <TouchableOpacity onPress={() => handleSync()} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'#778ca3',padding:10,borderRadius:10}} ><Text style={[global.h3,{color:'white'}]}>Sincronizar</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => handleSignOut()} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'#be9a9b',padding:10,borderRadius:10}} ><Text style={[global.h3,{color:'white'}]}>Sign out</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => handleSync()} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'#9abebb',padding:10,borderRadius:10}} ><Text style={[global.p,{color:'white',fontSize:20}]}>Sincronizar</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => handleSignOut()} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'white',padding:10,borderRadius:10,borderWidth:1,borderColor:'#9abebb'}} ><Text style={[global.p,{color:'#9abebb',fontSize:20}]}>Sign out</Text></TouchableOpacity>
                 </View>
                 
 

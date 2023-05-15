@@ -163,7 +163,7 @@ export default function Login({navigation, isLoggedIn, setIsLoggedIn }) {
     const dbRef2 = firebase.database().ref(`users/${NomeUtil}/events`);
     AsyncStorage.setItem('data', JSON.stringify(data));
     AsyncStorage.setItem('nomeUtil',NomeUtil);
-    AsyncStorage.setItem('ano',data.Ano);
+    AsyncStorage.setItem('ano',JSON.stringify(data.Ano));
     AsyncStorage.setItem('turma',data.Turma);
     AsyncStorage.setItem('usernameHome',data.NomeAbrev);
     AsyncStorage.setItem('events', JSON.stringify(events));
@@ -213,7 +213,7 @@ export default function Login({navigation, isLoggedIn, setIsLoggedIn }) {
       />
       
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={[global.h2,styles.buttonText]}>ENTRAR</Text>
+        <Text style={[global.p,styles.buttonText]}>ENTRAR</Text>
       </TouchableOpacity>
       <View style={styles.circle}></View>
     </View>
@@ -257,6 +257,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+    fontSize:20
     
     
   },

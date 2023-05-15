@@ -124,17 +124,18 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
           <View style={styles.modalView}>
             <Text style={[{ fontWeight: 'bold' }, global.h2]}>{selectedEvent.Titulo}</Text>
             <Text style={[{ marginTop: 10, marginBottom: 20 }, global.p]}>O que pretende fazer com este evento?</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+            <View style={{ flexDirection: 'row', }}>
+              
+              <TouchableOpacity style={[styles.deleteButton,{marginRight:15}]} onPress={() => handleDelete(selectedEvent.id)}>
+
+                <Text style={[global.p, { color: '#9abebb' }]}>Apagar</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={[styles.editButton]} onPress={() => {
                 setModal2Visible(true)
                 setModalVisible(false);
 
               }} >
-                <Text style={[global.p, { color: 'white' }]}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.deleteButton]} onPress={() => handleDelete(selectedEvent.id)}>
-
-                <Text style={[global.p, { color: 'white' }]}>Delete</Text>
+                <Text style={[global.p, { color: 'white' }]}>Editar</Text>
               </TouchableOpacity>
 
             </View>
@@ -163,10 +164,10 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
               <TouchableOpacity style={[styles.cancelButton]} onPress={() => {setModal2Visible(false)
               setModalVisible(true)}}>
 
-                <Text style={[global.p, { color: 'white' }]}>Cancel</Text>
+                <Text style={[global.p, { color: '#9abebb' }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.submitButton]} >
-                <Text style={[global.p, { color: 'white' }]} onPress={() => handleEdit(selectedEvent.id)}>Submit</Text>
+                <Text style={[global.p, { color: 'white' }]} onPress={() => handleEdit(selectedEvent.id)}>Submeter</Text>
               </TouchableOpacity>
 
 
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
 
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   }, submitButton: {
-    backgroundColor: '#778ca3',
+    backgroundColor: '#9abebb',
     padding: 5,
     width: 100,
     height: 50,
@@ -223,7 +224,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
 
   }, cancelButton: {
-    backgroundColor: '#be9a9b',
+    backgroundColor: 'white',
+    borderWidth:1,
+    borderColor:'#9abebb',
     padding: 5,
     width: 100,
     height: 50,
@@ -242,7 +245,7 @@ const styles = StyleSheet.create({
     
   },
   editButton: {
-    backgroundColor: '#778ca3',
+    backgroundColor: '#9abebb',
     padding: 5,
     width: 100,
     height: 50,
@@ -252,7 +255,9 @@ const styles = StyleSheet.create({
 
 
   }, deleteButton: {
-    backgroundColor: '#be9a9b',
+    backgroundColor: 'white',
+    borderWidth:1,
+    borderColor:'#9abebb',
     padding: 5,
     width: 100,
     height: 50,

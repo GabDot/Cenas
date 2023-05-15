@@ -230,18 +230,18 @@ loadDataFromStorage();
 
   LocaleConfig.locales['pt'] = {
     monthNames: [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
+      'JANEIRO',
+      'FEVEREIRO',
+      'MARÇO',
+      'ABRIL',
+      'MAIO',
+      'JUNHO',
+      'JULHO',
+      'AGOSTO',
+      'SETEMBRO',
+      'OUTUBRO',
+      'NOVEMBRO',
+      'DEZEMBRO',
     ],
     dayNamesShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
     dayNames: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
@@ -320,7 +320,7 @@ loadDataFromStorage();
       let endingDay;
       switch (event.Tipo) {
         case 'TST':
-          color = '#4b6584';
+          color = '#778ca3';
           textColor = 'white';
           startingDay = true;
           endingDay = true;
@@ -407,6 +407,7 @@ loadDataFromStorage();
       markedDatesObj[selectedDate] = {
         ...existingMarkedDateObj,
         marked: true,
+        dotColor:'#9abebb'
       };
     }
   
@@ -459,14 +460,14 @@ loadDataFromStorage();
           value={newEvent}
         /><View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
           <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
-            <Text style={[global.p, { color: 'white' }]}>Cancel</Text>
+            <Text style={[global.p, { color: '#9abebb' }]}>Cancelar</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.submitButton} onPress={() => {
             submitEvent();
             closeModal();
           }}>
 
-            <Text style={[global.p, { color: 'white' }]} >Save</Text>
+            <Text style={[global.p, { color: 'white' }]} >Criar</Text>
           </TouchableOpacity>
 
         </View>
@@ -497,8 +498,8 @@ loadDataFromStorage();
       theme={{
         backgroundColor: 'rgb(242,242,242)',
         calendarBackground: 'rgb(242,242,242)',
-        textMonthFontFamily: 'sans-bold',
-        textMonthFontSize: 36,
+        textMonthFontFamily: 'sans-semibold',
+        textMonthFontSize: 35,
         monthTextColor: '#1E1E1E',
       }}
       
@@ -581,7 +582,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   submitButton: {
-    backgroundColor: '#778ca3',
+    backgroundColor: '#9abebb',
     padding: 5,
     width: 100,
     height: 50,
@@ -595,7 +596,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   cancelButton: {
-    backgroundColor: '#be9a9b',
+    backgroundColor: 'white',
+    borderWidth:1,
+    borderColor:'#9abebb',
     padding: 5,
     width: 100,
     height: 50,
@@ -605,7 +608,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   cancelButtonText: {
-    color: 'white'
+    color:'#9abebb',
   }, closeButton: {
     position: 'absolute',
     top: 10,
