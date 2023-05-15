@@ -12,6 +12,20 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 const Ementa = () => {
   const [ementaData, setEmentaData] = useState(null);
   const [isConnected, setIsConnected] = useState();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Call a function to fetch new data here
+    wait(2000).then(() => setRefreshing(false));
+  };
+
+   
+const wait = (timeout) => {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+}
+
+
   useEffect(() => {
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       console.log(isConnected);
@@ -49,7 +63,7 @@ const Ementa = () => {
   return () => {
     unsubscribeNetInfo();
   };
-  }, [isConnected]);
+  }, [isConnected,refreshing]);
 
   if (!ementaData) {
     return <Text>Loading...</Text>;
@@ -60,6 +74,14 @@ const Ementa = () => {
       
     <View  style={{flex:1}}>
       <Header></Header>
+      <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
       <ScrollView style={{flex:1}}>
       {Object.keys(ementaData).map(key => {
         const dayData = ementaData[key];
@@ -152,6 +174,7 @@ const Ementa = () => {
           </View>
         );
       })}
+     </ScrollView>
      </ScrollView>
     </View>
    

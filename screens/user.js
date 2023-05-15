@@ -44,6 +44,7 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
         
         setIsLoading(false)
         Alert.alert('Erro','Erro na sincronização')
+        setIsLoading(false)
         return;
       }
       const dataToken = await response.json();
@@ -56,7 +57,8 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
     }else{
       
       Alert.alert('Erro','Falha na conexão')
-      setModalVisible(true);
+      
+      setIsLoading(false)
       
     }
    setIsLoading(false)

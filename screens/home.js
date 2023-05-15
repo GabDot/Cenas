@@ -273,9 +273,6 @@ const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
 
-
-  
-
   const onRefresh = () => {
     setRefreshing(true);
     // Call a function to fetch new data here
