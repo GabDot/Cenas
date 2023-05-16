@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet,ScrollView } from 'react-native';
+import { View, Text, StyleSheet,ScrollView, Pressable } from 'react-native';
 import firebase from 'firebase';
 import Collapsible from 'react-native-collapsible';
 import Header from '../components/Header';
 import { global } from '../styles/globals';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const Classificacoes = () => {
   const [classificacoes, setClassificacoes] = useState({});
@@ -88,15 +89,15 @@ const Classificacoes = () => {
       
       {Object.keys(classificacoes).map((className, index) => (
         <View key={index}>
-          <View style={{backgroundColor:'#778ca3',padding:10,marginBottom:10,marginTop:10,borderRadius:10}}>
-          <Text style={[global.h3,{color:'white'}]} onPress={() => toggleExpanded(index)}>{className}</Text>
-          </View>
+          <Pressable onPress={() => toggleExpanded(index)} style={{backgroundColor:'#778ca3',padding:10,marginBottom:10,marginTop:10,borderRadius:10}}>
+          <Text style={[global.h3,{color:'white'}]}>{className}</Text>
+          </Pressable>
           <Collapsible collapsed={!activeSections.includes(index)}>
             {classificacoes[className].map((test, testIndex) => (
               <View key={testIndex}>
-                <View style={{backgroundColor:'#9abebb',padding:10,borderTopLeftRadius:10,borderTopRightRadius:10,marginTop:5}}>
-                <Text style={[global.h3,{color:'white',fontSize:16}]} onPress={() => [toggleExpanded(index, testIndex)]}>{test.DtaAv}</Text>
-                </View>
+                <Pressable onPress={() => [toggleExpanded(index, testIndex)]} style={{backgroundColor:'#9abebb',padding:10,borderTopLeftRadius:10,borderTopRightRadius:10,marginTop:5}}>
+                <Text style={[global.h3,{color:'white',fontSize:16}]} >{test.DtaAv}</Text>
+                </Pressable>
                 <Collapsible
                     collapsed={
                       !activeTests.some(

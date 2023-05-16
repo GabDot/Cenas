@@ -191,13 +191,14 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
       
         const day = new Date()
         const dayOfWeek = moment(day, 'YYYY-M-D').locale('pt-br').format('dddd')
-       console.log(ano)
-       console.log(turma)
-       console.log(dayOfWeek)
+        console.log(ano)
+        console.log(turma)
+        console.log(dayOfWeek)
         db.ref(`/cantinahorario/${ano}/${turma}/${dayOfWeek}`).on('value', snapshot => {
           setCantinaHorario(snapshot.val());
           AsyncStorage.setItem('cantinahorario',JSON.stringify(snapshot.val()))
         });
+
         const dbRef4 = firebase.database().ref('/eventos');
       dbRef4.on('value', snapshot => {
         setEventos(snapshot.val());
