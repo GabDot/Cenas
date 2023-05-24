@@ -24,7 +24,11 @@ export default function AgendaItem({ agenda, navigation }) {
       color = '#38ada9';
     } else if (agenda.Tipo === 'VIS') {
       color = '#9b59b6';
-    } else {
+    } 
+    else if (agenda.Tipo === 'OU')  {
+      color = '#9b59b6';
+    }
+      else {
       color = '#beac9a';
     }
   
