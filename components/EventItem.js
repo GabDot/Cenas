@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     },
     closeButon: {
         position: 'absolute',
-        left:330,
+        left:'90%',
         paddingBottom:20
     }
 

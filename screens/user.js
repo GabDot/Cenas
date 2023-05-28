@@ -12,6 +12,7 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
   const db = firebase.database();
   const [isConnected,setIsConnected] = useState();
   const [isLoading,setIsLoading] = useState(true);
+  const [refreshing,setRefreshing] = useState(false);
   const API_URL = 'https://geweb3.cic.pt/GEWebApi/token';
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -43,7 +44,7 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
         console.log('Error:', response.status);
         
         setIsLoading(false)
-        Alert.alert('Erro','Erro na sincronização')
+       
         setIsLoading(false)
         return;
       }
@@ -56,7 +57,7 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
       checkUser(dataToken.access_token)
     }else{
       
-      Alert.alert('Erro','Falha na conexão')
+      
       
       setIsLoading(false)
       
@@ -103,7 +104,7 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
   
     if (response.ok) {
       const dataResponse = await response.json();
-      Alert.alert('Sincronização','Sincronização bem sucedida')
+      
       return dataResponse.map(({ Titulo, Tipo, DtaIni }) => ({
         Titulo,
         Tipo,
@@ -142,6 +143,20 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
   
     setTimeout(getData, 1500);
   }, []);
+  const wait = (timeout) => {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+  }
+  
+    const onRefresh = () => {
+      setRefreshing(true);
+      if(isConnected){
+        handleSync();
+  
+      }
+      
+      // Call a function to fetch new data here
+      wait(2000).then(() => setRefreshing(false));
+    };
   const handleSignOut = async () => {
     setIsLoggedIn(false);
    AsyncStorage.clear()
@@ -151,7 +166,14 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
        !isLoading ? (
         <View style={{flex:1}}>
             <Header></Header>
-         
+            <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
                 <View style={styles.profilePictureContainer}>
                        
                         <Text style={[global.h2,{marginTop:10,marginBottom:20}]}>{data.NomeAbrev}</Text>
@@ -172,15 +194,14 @@ export default function User({isLoggedIn,setIsLoggedIn}) {
                     </View>
 
                 </ScrollView>
-                
-                <TouchableOpacity onPress={() => handleSync()} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'#9abebb',padding:10,borderRadius:10}} ><Text style={[global.p,{color:'white',fontSize:20}]}>Sincronizar</Text></TouchableOpacity>
                 <TouchableOpacity onPress={() => handleSignOut()} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'white',padding:10,borderRadius:10,borderWidth:1,borderColor:'#9abebb'}} ><Text style={[global.p,{color:'#9abebb',fontSize:20}]}>Sign out</Text></TouchableOpacity>
                 </View>
                 
 
             
- 
+                </ScrollView>
         </View>
+        
 
        ):(
         <View style={{flex:1}}>

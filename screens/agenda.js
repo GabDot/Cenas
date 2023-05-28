@@ -80,13 +80,124 @@ const AgendaScreen = React.memo(({route}) => {
       unsubscribe();
     };
   }, [isConnected]);
+  const API_URL = 'https://geweb3.cic.pt/GEWebApi/token';
+  const handleSync = async () => {
+    setIsLoading(true);
+    
+    const username = await AsyncStorage.getItem('username');
+    const password = await AsyncStorage.getItem('password');
+    console.log(username)
+    console.log(password)
+    if(isConnected){
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `grant_type=password&username=${username}&password=${password}`,
+      });
   
+      if (!response.ok) {
+        console.log('Error:', response.status);
+        
+        setIsLoading(false)
+       
+        setIsLoading(false)
+        return;
+      }
+      const dataToken = await response.json();
+      console.log(dataToken.access_token)
+      await AsyncStorage.setItem('token', dataToken.access_token);
+      const expirationTime = Date.now() + dataToken.expires_in * 1000;
+      await AsyncStorage.setItem('expirationTime', expirationTime.toString());
+      
+      checkUser(dataToken.access_token)
+    }else{
+      
+      
+      
+      setIsLoading(false)
+      
+    }
+   setIsLoading(false)
+   
+  };
+  async function checkUser(token) {
+    const username = await AsyncStorage.getItem('username');
+    const exists = await checkUserExists(username);
+    if (exists) {
+      console.log('User exists');
+      const data = await getData(token);
+      const events = await getEvents(token);
+      updateUser(data.NomeUtil, data, events);
+    }
+  }
+  const getData = async (token) => {
+    
+  
+    const response = await fetch('https://geweb3.cic.pt/GEWebApi/api/user/_current', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  
+    if (response.ok) {
+      const dataResponse = await response.json();
+      
+      return dataResponse
+      
+    } else {
+      
+    }
+  };
+  const getEvents = async (token) => {
+   
+  
+    const response = await fetch('https://geweb3.cic.pt/GEWebApi/api/event', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  
+    if (response.ok) {
+      const dataResponse = await response.json();
+      
+      return dataResponse.map(({ Titulo, Tipo, DtaIni }) => ({
+        Titulo,
+        Tipo,
+        DtaIni: DtaIni.split('T')[0],
+      }));
+    } else {
+      // ...
+    }
+  };
+  const checkUserExists = async (NomeUtil) => {
+    const dbRef = firebase.database().ref(`users/${NomeUtil}`);
+    const snapshot = await dbRef.once('value');
+    return snapshot.exists();
+  }
+  const updateUser = async (NomeUtil, data,events) => {
+    const dbRef = firebase.database().ref(`users/${NomeUtil}/info`);
+    const dbRef2 = firebase.database().ref(`users/${NomeUtil}/events`);
+    AsyncStorage.setItem('data', JSON.stringify(data));
+    AsyncStorage.setItem('nomeUtil',NomeUtil);
+    AsyncStorage.setItem('ano',JSON.stringify(data.Ano));
+    AsyncStorage.setItem('turma',data.Turma);
+    AsyncStorage.setItem('events', JSON.stringify(events));
+    await dbRef.set(data);
+    await dbRef2.set(events);
+   
+  }
+
   const wait = (timeout) => {
     return new Promise(resolve => setTimeout(resolve, timeout));
   }
 
     const onRefresh = () => {
       setRefreshing(true);
+      if(isConnected){
+        handleSync();
+      }
       console.log("refreshing?")
       wait(2000).then(() => setRefreshing(false));
     };
@@ -178,7 +289,7 @@ const currentDate = moment().format("YYYY-MM-DD");
     
     if(isConnected){
     
-    const getData = async () => {
+    const getDataAgenda = async () => {
       const nomeUtil = await AsyncStorage.getItem('nomeUtil')
       setNomeUtil(nomeUtil);
       const dbRef = firebase.database().ref(`users/${nomeUtil}/events`);
@@ -211,7 +322,7 @@ const currentDate = moment().format("YYYY-MM-DD");
   });
   setIsLoading(false);
 }
-getData()
+getDataAgenda()
     }
     
 else{
@@ -263,7 +374,7 @@ loadDataFromStorage();
     const selectedDateObj = new Date(selectedDate);
     selectedDateObj.setHours(0, 0, 0, 0);
   
-    if (selectedDateObj.getTime() >= today && newEvent.length > 3 && newEvent.length < 20) {
+    if (selectedDateObj.getTime() >= today && newEvent.length > 2 && newEvent.length < 20) {
       const existingEvents = await AsyncStorage.getItem('eventP');
       const eventP = existingEvents ? JSON.parse(existingEvents) : [];
   
@@ -302,9 +413,9 @@ loadDataFromStorage();
       AsyncStorage.setItem('eventP', JSON.stringify(eventP));
     } else {
       setIsModal2Visible(true);
-      if (selectedDateObj.getTime() <= today) {
+      if (selectedDateObj.getTime() < today) {
         setErrorMessage('Não é possível criar um evento pessoal para uma data no passado');
-      } else if (newEvent.length < 3) {
+      } else if (newEvent.length < 2) {
         setErrorMessage('O nome dado ao evento não tem caracteres suficientes');
       } else if (newEvent.length > 20) {
         setErrorMessage('O nome dado ao evento tem demasiado caracteres');
@@ -533,7 +644,7 @@ loadDataFromStorage();
   <View style={{flex: 1,
     justifyContent: 'center',
     alignItems: 'center',}}>
-       <ActivityIndicator size={100} />
+       <ActivityIndicator size={100} color='#9A9DBE'/>
         </View>
 )
    
