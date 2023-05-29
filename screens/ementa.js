@@ -169,7 +169,7 @@ const wait = (timeout) => {
         const today = new Date();
         const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
         const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-      
+        const xmlDataStr = `<?xml version="1.0" encoding="utf-8"?>`
         const dt1 = formatDate(firstDayOfWeek);
         const dt2 = formatDate(lastDayOfWeek);
       
@@ -196,9 +196,17 @@ const wait = (timeout) => {
           body: formBody
         });
         const text = await response.text();
-        const data = parser.parse(text);
+        const options = {
+          attributeNamePrefix: '',
+          attrNodeName: 'attributes',
+          textNodeName: '#text',
+          ignoreAttributes: false,
+          parseAttributeValue: true,
+          encoding: 'latin1', // Specify the correct character encoding
+        };
+        
+        const data = parser.parse(text, options, xmlDataStr);
         setEmentaData(data);
-      
       AsyncStorage.setItem('ementa',JSON.stringify(data))
       setIsLoading(false)
       }
@@ -254,10 +262,10 @@ const wait = (timeout) => {
   if (!ementaData) {
     return <Text>Loading...</Text>;
   }
-
+  const menuData = ementaData.ementa.menu;
   return (
     
-    isLoading && ementaData ? (
+    isLoading ? (
       <View style={{ flex: 1 }}>
         
          <Header></Header>
@@ -277,14 +285,13 @@ const wait = (timeout) => {
     >
       <ScrollView style={{flex:1}}>
         {console.log(ementaData)}
-      {ementaData.menu.map((dayData, index) => {
+      {menuData.map((dayData, index) => {
   const date = dayData.data;
   const carne = dayData.normal["#text"];
   const peixe = dayData.opcao["#text"];
   const dieta = dayData.dieta["#text"];
-  const vegetariano = dayData.vegetariano["#text"];
+  const vegetariano = dayData.vegetariano ? dayData.vegetariano["#text"] : null;
   const sobremesa = dayData.sobremesa["#text"];
-        
         
        
         return (
