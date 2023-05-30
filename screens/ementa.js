@@ -20,7 +20,12 @@ const Ementa = () => {
   const [apiData, setApiData] = useState({});
 
   
-
+  const formatDate = (date) => {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${day < 10 ? '0' + day : day}-${month < 10 ? '0' + month : month}-${year}`;
+  };
   const handleSync = async () => {
     setIsLoading(true);
     
@@ -150,84 +155,109 @@ const wait = (timeout) => {
       setIsConnected(state.isConnected);
 
     });
-    const getDataEmenta = async () => {
-      const ementa = await AsyncStorage.getItem('ementa')
-      if(ementa !== null){
-        setEmentaData(JSON.parse(ementa))
-      }
+    // const getDataEmenta = async () => {
+    //   const ementa = await AsyncStorage.getItem('ementa')
+    //   if(ementa !== null){
+    //     setEmentaData(JSON.parse(ementa))
+    //   }
 
-    } 
+    // } 
     if(isConnected){
-
-    
-    const db = firebase.database();
-    db.ref('/ementa').on('value', snapshot => {
-      const data = snapshot.val();
-      const filteredData = Object.keys(data)
-        .filter(key => {
-          const date = moment(data[key].Dta, 'YYYY-M-D');
-          return date.isSame(moment(), 'week');
-        })
-        .map(key => data[key])
-        .sort((a, b) => moment(a.Dta, 'YYYY-M-D').diff(moment(b.Dta, 'YYYY-M-D')));
-      setEmentaData(filteredData);
+      setIsLoading(true)
+      async function fetchData() {
+        const parser = new XMLParser();
+        const today = new Date();
+        const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+        const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
       
-      AsyncStorage.setItem('ementa',JSON.stringify(filteredData))
+        const dt1 = formatDate(firstDayOfWeek);
+        const dt2 = formatDate(lastDayOfWeek);
+      
+        const details = {
+          'tk':tk,
+          'dt1': dt1,
+          'dt2': dt2,
+
+        };
+      
+        var formBody = [];
+        for (var property in details) {
+          var encodedKey = encodeURIComponent(property);
+          var encodedValue = encodeURIComponent(details[property]);
+          formBody.push(encodedKey + "=" + encodedValue);
+        }
+        formBody = formBody.join("&");
+      
+        const response = await fetch('https://www.cic.pt/alunos/srvlistamenu.asp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+          },
+          body: formBody
+        });
+        const text = await response.text();
+        const data = parser.parse(text);
+        setEmentaData(data);
+      
+      AsyncStorage.setItem('ementa',JSON.stringify(data))
       setIsLoading(false)
-    });
+      }
+   fetchData()
+      
+    
   }
   else{
-    getDataEmenta()
+    //getDataEmenta()
     setIsLoading(false)
   }
   return () => {
     unsubscribeNetInfo();
   };
   }, [isConnected,refreshing]);
-  useEffect(() => {
-    async function fetchData(date) {
-      const parser = new XMLParser();
-      const details = {
-        'tk': 'abc',
-        'dt': date,
-        'user': '1549'
-      };
+  // useEffect(() => {
+  //   async function fetchData(date) {
+  //     const parser = new XMLParser();
+  //     const details = {
+  //       'tk': 'abc',
+  //       'dt': date,
+  //       'user': '1549'
+  //     };
     
-      var formBody = [];
-      for (var property in details) {
-        var encodedKey = encodeURIComponent(property);
-        var encodedValue = encodeURIComponent(details[property]);
-        formBody.push(encodedKey + "=" + encodedValue);
-      }
-      formBody = formBody.join("&");
+  //     var formBody = [];
+  //     for (var property in details) {
+  //       var encodedKey = encodeURIComponent(property);
+  //       var encodedValue = encodeURIComponent(details[property]);
+  //       formBody.push(encodedKey + "=" + encodedValue);
+  //     }
+  //     formBody = formBody.join("&");
     
-      const response = await fetch('https://www.cic.pt/alunos/srvconsultarefeicao.asp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        },
-        body: formBody
-      });
-      const text = await response.text();
-      const data = parser.parse(text);
-      setApiData(prevData => ({ ...prevData, [date]: data }));
+  //     const response = await fetch('https://www.cic.pt/alunos/srvconsultarefeicao.asp', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+  //       },
+  //       body: formBody
+  //     });
+  //     const text = await response.text();
+  //     const data = parser.parse(text);
+  //     setApiData(prevData => ({ ...prevData, [date]: data }));
       
-    }
-    if (ementaData) {
-      Object.keys(ementaData).forEach(key => {
-        const dayData = ementaData[key];
-        const date = dayData.Dta;
-        fetchData(date);
-      });
-    }
-  }, [ementaData, refreshing]);
+  //   }
+  //   if (ementaData) {
+  //     Object.keys(ementaData).forEach(key => {
+  //       const dayData = ementaData[key];
+  //       const date = dayData.Dta;
+  //       fetchData(date);
+  //     });
+  //   }
+  // }, [ementaData, refreshing]);
   if (!ementaData) {
     return <Text>Loading...</Text>;
   }
 
   return (
     
-    isLoading ? (
+    isLoading && ementaData ? (
       <View style={{ flex: 1 }}>
         
          <Header></Header>
@@ -246,14 +276,19 @@ const wait = (timeout) => {
       }
     >
       <ScrollView style={{flex:1}}>
-      {Object.keys(ementaData).map(key => {
-        const dayData = ementaData[key];
-        const date = dayData.Dta;
+        {console.log(ementaData)}
+      {ementaData.menu.map((dayData, index) => {
+  const date = dayData.data;
+  const carne = dayData.normal["#text"];
+  const peixe = dayData.opcao["#text"];
+  const dieta = dayData.dieta["#text"];
+  const vegetariano = dayData.vegetariano["#text"];
+  const sobremesa = dayData.sobremesa["#text"];
         
         
        
         return (
-          <View key={key} style={{ marginTop: 10 }}>
+          <View key={index} style={{ marginTop: 10 }}>
             <View
               style={[
                 styles.container,
@@ -284,7 +319,7 @@ const wait = (timeout) => {
                 CARNE:
               </Text>
               <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
-                {dayData.Carne}
+                {carne}
               </Text>
               <Text
                 style={[
@@ -296,7 +331,7 @@ const wait = (timeout) => {
                 PEIXE:
               </Text>
               <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
-                {dayData.Peixe}
+                {peixe}
               </Text>
               <Text
                 style={[
@@ -308,7 +343,7 @@ const wait = (timeout) => {
                 DIETA:
               </Text>
               <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
-                {dayData.Dieta}
+                {dieta}
               </Text>
               <Text
                 style={[
@@ -320,7 +355,7 @@ const wait = (timeout) => {
                 VEGETARIANO:
               </Text>
               <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
-                {dayData.Vegetariano}
+                {vegetariano}
               </Text>
               <Text
                 style={[
@@ -332,7 +367,7 @@ const wait = (timeout) => {
                 SOBREMESA:
               </Text>
               <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
-                {dayData.Sobremesa}
+                {sobremesa}
               </Text>
               
             </View>
