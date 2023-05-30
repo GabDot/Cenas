@@ -24,6 +24,7 @@
     "expo-font": "~11.0.1",
     "expo-splash-screen": "~0.17.5",
     "expo-status-bar": "~1.4.2",
+    "fast-xml-parser": "^4.2.2",
     "firebase": "^8.2.7",
     "json-server": "^0.17.1",
     "jwt-decode": "^3.1.2",

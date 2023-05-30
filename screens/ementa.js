@@ -8,13 +8,19 @@ import moment from 'moment/moment';
 import NetInfo from '@react-native-community/netinfo';
 import * as OpenAnything from "react-native-openanything"
 import { TouchableOpacity } from 'react-native-gesture-handler';
-
+const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 const Ementa = () => {
   const [ementaData, setEmentaData] = useState(null);
   const [isConnected, setIsConnected] = useState();
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading,setIsLoading] = useState(true);
+  const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
   const API_URL = 'https://geweb3.cic.pt/GEWebApi/token';
+  
+  const [apiData, setApiData] = useState({});
+
+  
+
   const handleSync = async () => {
     setIsLoading(true);
     
@@ -178,7 +184,43 @@ const wait = (timeout) => {
     unsubscribeNetInfo();
   };
   }, [isConnected,refreshing]);
-
+  useEffect(() => {
+    async function fetchData(date) {
+      const parser = new XMLParser();
+      const details = {
+        'tk': 'abc',
+        'dt': date,
+        'user': '1549'
+      };
+    
+      var formBody = [];
+      for (var property in details) {
+        var encodedKey = encodeURIComponent(property);
+        var encodedValue = encodeURIComponent(details[property]);
+        formBody.push(encodedKey + "=" + encodedValue);
+      }
+      formBody = formBody.join("&");
+    
+      const response = await fetch('https://www.cic.pt/alunos/srvconsultarefeicao.asp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body: formBody
+      });
+      const text = await response.text();
+      const data = parser.parse(text);
+      setApiData(prevData => ({ ...prevData, [date]: data }));
+      
+    }
+    if (ementaData) {
+      Object.keys(ementaData).forEach(key => {
+        const dayData = ementaData[key];
+        const date = dayData.Dta;
+        fetchData(date);
+      });
+    }
+  }, [ementaData, refreshing]);
   if (!ementaData) {
     return <Text>Loading...</Text>;
   }
@@ -187,6 +229,7 @@ const wait = (timeout) => {
     
     isLoading ? (
       <View style={{ flex: 1 }}>
+        
          <Header></Header>
          <ActivityIndicator size={100} color='#9A9DBE'/>
         </View>
@@ -206,6 +249,8 @@ const wait = (timeout) => {
       {Object.keys(ementaData).map(key => {
         const dayData = ementaData[key];
         const date = dayData.Dta;
+        
+        
        
         return (
           <View key={key} style={{ marginTop: 10 }}>
