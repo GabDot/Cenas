@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment/moment';
 import NetInfo from '@react-native-community/netinfo';
+import RadioInput from '../components/radio';
 import * as OpenAnything from "react-native-openanything"
 import { TouchableOpacity } from 'react-native-gesture-handler';
 const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
@@ -169,7 +170,6 @@ const wait = (timeout) => {
         const today = new Date();
         const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
         const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-        const xmlDataStr = `<?xml version="1.0" encoding="utf-8"?>`
         const dt1 = formatDate(firstDayOfWeek);
         const dt2 = formatDate(lastDayOfWeek);
       
@@ -185,30 +185,37 @@ const wait = (timeout) => {
           var encodedKey = encodeURIComponent(property);
           var encodedValue = encodeURIComponent(details[property]);
           formBody.push(encodedKey + "=" + encodedValue);
+          
         }
         formBody = formBody.join("&");
       
         const response = await fetch('https://www.cic.pt/alunos/srvlistamenu.asp', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            'Content-Type': 'application/x-www-form-urlencoded;charset=ISO-8859-1'
           },
           body: formBody
         });
-        const text = await response.text();
-        const options = {
-          attributeNamePrefix: '',
-          attrNodeName: 'attributes',
-          textNodeName: '#text',
-          ignoreAttributes: false,
-          parseAttributeValue: true,
-          encoding: 'latin1', // Specify the correct character encoding
-        };
-        
-        const data = parser.parse(text, options, xmlDataStr);
-        setEmentaData(data);
-      AsyncStorage.setItem('ementa',JSON.stringify(data))
-      setIsLoading(false)
+
+        const blob = await response.blob();
+  const text = await convertBlobToText(blob, 'ISO-8859-1');
+
+  const data = parser.parse(text);
+  setEmentaData(data);
+  AsyncStorage.setItem('ementa', JSON.stringify(data));
+  setIsLoading(false);
+}
+
+async function convertBlobToText(blob, encoding) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      resolve(reader.result);
+    };
+    reader.onerror = reject;
+    reader.readAsText(blob, encoding);
+  });
+
       }
    fetchData()
       
@@ -284,14 +291,14 @@ const wait = (timeout) => {
       }
     >
       <ScrollView style={{flex:1}}>
-        {console.log(ementaData)}
+
       {menuData.map((dayData, index) => {
-  const date = dayData.data;
-  const carne = dayData.normal["#text"];
-  const peixe = dayData.opcao["#text"];
-  const dieta = dayData.dieta["#text"];
-  const vegetariano = dayData.vegetariano ? dayData.vegetariano["#text"] : null;
-  const sobremesa = dayData.sobremesa["#text"];
+      const date = dayData.data;
+      const carne = dayData.normal["#text"] || dayData.normal
+      const peixe = dayData.opcao["#text"] || dayData.peixe;
+      const dieta = dayData.dieta["#text"] || dayData.dieta;
+      const vegetariano =  dayData.vegetariano["#text"] || dayData.vegetariano;
+      const sobremesa = dayData.sobremesa["#text"] || dayData.sobremesa;
         
        
         return (
@@ -299,7 +306,7 @@ const wait = (timeout) => {
             <View
               style={[
                 styles.container,
-                moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { backgroundColor: '#D0247A' },
+                moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { backgroundColor: '#D0247A' },
               ]}
             >
               <Text
@@ -311,72 +318,73 @@ const wait = (timeout) => {
                     borderBottomColor: '#B5B4B4',
                   },
                   global.h2,
-                  moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' },
+                  moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' },
                 ]}
               >
-                {moment(date, 'YYYY-M-D').locale('pt-br').format('dddd').toUpperCase()} | {date}
+                {moment(date, 'DD/MM/YYYY').locale('pt-br').format('dddd').toUpperCase()} | {date}
               </Text>
               <Text
                 style={[
                   { marginBottom: 5, marginTop: 5 },
                   global.h3,
-                  moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' },
+                  moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' },
                 ]}
               >
                 CARNE:
               </Text>
-              <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
+              <Text style={[global.p, moment(date,'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' }]}>
                 {carne}
               </Text>
               <Text
                 style={[
                   { marginBottom: 5, marginTop: 5 },
                   global.h3,
-                  moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' },
+                  moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' },
                 ]}
               >
                 PEIXE:
               </Text>
-              <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
+              <Text style={[global.p, moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' }]}>
                 {peixe}
               </Text>
               <Text
                 style={[
                   { marginBottom: 5, marginTop: 5 },
                   global.h3,
-                  moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' },
+                  moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' },
                 ]}
               >
                 DIETA:
               </Text>
-              <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
+              <Text style={[global.p, moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' }]}>
                 {dieta}
               </Text>
               <Text
                 style={[
                   { marginBottom: 5, marginTop: 5 },
                   global.h3,
-                  moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' },
+                  moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' },
                 ]}
               >
                 VEGETARIANO:
               </Text>
-              <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
+              <Text style={[global.p, moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' }]}>
                 {vegetariano}
               </Text>
               <Text
                 style={[
                   { marginBottom: 5, marginTop: 5 },
                   global.h3,
-                  moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' },
+                  moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' },
                 ]}
               >
                 SOBREMESA:
               </Text>
-              <Text style={[global.p, moment(date, 'YYYY-M-D').isSame(moment(), 'day') && { color: 'white' }]}>
+              <Text style={[global.p, moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' }]}>
                 {sobremesa}
               </Text>
-              
+              <RadioInput date={date}/>
+
             </View>
           </View>
         );
