@@ -2,16 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { global } from '../styles/globals';
 import queryString from 'query-string';
+import ErrorModal from './ErrorModal';
 const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 
-const RadioInput = (date) => {
+const RadioInput = (date,refreshing) => {
     const options = [
         { label: 'Carne', value: 'N' },
         { label: 'Peixe', value: 'O' },
         { label: 'Dieta', value: 'D' },
         { label: 'Vegetariano', value: 'V' },
       ];
-      const [selectedOption, setSelectedOption] = useState(options[0].value);
+      const [selectedOption, setSelectedOption] = useState();
+      const [isModalVisible, setIsModalVisible] = useState(false);
+      const [eatenOption,setEatenOption] = useState();
+      const [message,setMessage] = useState('')
       const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
 
 
@@ -29,7 +33,7 @@ const RadioInput = (date) => {
       
         
          const formBody = queryString.stringify(details);
-         console.log(queryString.stringify(details))
+         
       
         try {
           const response = await fetch('https://www.cic.pt/alunos/srvmarcarefeicao.asp', {
@@ -38,32 +42,64 @@ const RadioInput = (date) => {
               'Content-Type': 'application/x-www-form-urlencoded;',
             },
             body: formBody,
-          });
+          }).then(setIsModalVisible(true));
       
-          console.log(response.status);
-      
-          const blob = await response.blob();
-          const text = await convertBlobToText(blob, 'ISO-8859-1');
-          const data = parser.parse(text);
-          
-          // ... handle the data or perform further actions
         } catch (error) {
           console.log('Error:', error);
         }
       }
+      useEffect(() =>  {
+        async function verificarSenha() {
+          const parser = new XMLParser();
+          
+        
+          const details = {
+            tk: tk,
+            dt: date.date,
+            user: '15496',
+          };
+        
+          
+           const formBody = queryString.stringify(details);
+        
+          try {
+            const response = await fetch('https://www.cic.pt/alunos/srvconsultarefeicao.asp', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;',
+              },
+              body: formBody,
+            });
+            const blob = await response.blob();
+            const text = await convertBlobToText(blob, 'ISO-8859-1');
+          
+            const data = parser.parse(text);
+            
+            setSelectedOption(data.opcaomenu.menuE)
+            setEatenOption(data.opcaomenu.menu)
+           
+            
+          } catch (error) {
+            console.log('Error:', error);
+          }
+        }
+        verificarSenha();
+
+      },[refreshing])
       
-    
-    async function convertBlobToText(blob, encoding) {
-    return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      resolve(reader.result);
-    };
-    reader.onerror = reject;
-    reader.readAsText(blob, encoding);
-    });
-    
-      }
+      
+      async function convertBlobToText(blob, encoding) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result);
+          };
+          reader.onerror = reject;
+          reader.readAsText(blob, encoding);
+        });
+      
+            }
+   
 
   
   const handleOptionSelect = (option) => {
@@ -72,6 +108,7 @@ const RadioInput = (date) => {
 
   return (
     <View style={styles.contaiener}>
+      <ErrorModal visible={isModalVisible} onClose={() => setIsModalVisible(false)}  message={'Senha marcada!'}></ErrorModal>
         <View style={styles.containerRow}>
         {options.map((option) => (
         <TouchableOpacity
@@ -84,7 +121,7 @@ const RadioInput = (date) => {
         </TouchableOpacity>
       ))}
         </View>
-        <TouchableOpacity onPress={() => submitSenha()} style={styles.submitButton}><Text style={[global.p,{color:'white',fontSize:20}]}>Marcar</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => [submitSenha()]} style={styles.submitButton}><Text style={[global.p,{color:'white',fontSize:20}]}>Marcar</Text></TouchableOpacity>
     </View>
   );
 };

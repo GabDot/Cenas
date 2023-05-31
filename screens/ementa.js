@@ -15,6 +15,9 @@ const Ementa = () => {
   const [isConnected, setIsConnected] = useState();
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading,setIsLoading] = useState(true);
+  const [date1,setDate1] = useState();
+  const today = new Date();
+  const [date2,setDate2] = useState();
   const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
   const API_URL = 'https://geweb3.cic.pt/GEWebApi/token';
   
@@ -167,12 +170,13 @@ const wait = (timeout) => {
       setIsLoading(true)
       async function fetchData() {
         const parser = new XMLParser();
-        const today = new Date();
+        
         const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
         const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
         const dt1 = formatDate(firstDayOfWeek);
         const dt2 = formatDate(lastDayOfWeek);
-      
+        setDate1(moment(dt1, 'DD/MM/YYYY').startOf('day'))
+        setDate2(moment(dt2, 'DD/MM/YYYY').startOf('day'))
         const details = {
           'tk':tk,
           'dt1': dt1,
@@ -294,6 +298,7 @@ async function convertBlobToText(blob, encoding) {
 
       {menuData.map((dayData, index) => {
       const date = dayData.data;
+      const dateComp = moment(dayData.data, 'DD/MM/YYYY').startOf('day')
       const carne = dayData.normal["#text"] || dayData.normal
       const peixe = dayData.opcao["#text"] || dayData.peixe;
       const dieta = dayData.dieta["#text"] || dayData.dieta;
@@ -383,7 +388,15 @@ async function convertBlobToText(blob, encoding) {
               <Text style={[global.p, moment(date, 'DD/MM/YYYY').isSame(moment(), 'day') && { color: 'white' }]}>
                 {sobremesa}
               </Text>
-              <RadioInput date={date}/>
+              {console.log("date",dateComp)}
+              
+              {dateComp>today?(
+                <RadioInput date={date} refreshing={refreshing}/>
+              ):
+              (
+                <Text style={[global.h3,{marginTop:10}]}>Não é possível marcar senha para este dia</Text>
+              )}
+              
 
             </View>
           </View>
