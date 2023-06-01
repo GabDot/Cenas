@@ -6,7 +6,7 @@ import firebase from 'firebase/app';
 import { database } from '../firebase';
 import 'firebase/database';
 import ErrorModal from './ErrorModal';
-
+import { useToast } from "react-native-toast-notifications";
 const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefresh }) => {
  
 
@@ -15,7 +15,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
   const [modalErrorVisible, setModalErrorVisible] = useState(false);
   const [errorMessage,setErrorMessage] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(['a']);
-
+  const toast = useToast();
   const [newText, setNewText] = useState('')
 
   const filteredEvents = events.filter(event => event.DtaIni === selectedDate);
@@ -45,6 +45,13 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
         await AsyncStorage.setItem('eventP', JSON.stringify(parsedItem));
   
         await AsyncStorage.setItem('editedEvents', JSON.stringify(parsedEditedEvents));
+        toast.show('Evento editado', {
+          type: "warning",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "slide-in",
+        })
       } else {
         if(newText.length < 3){
           setModalErrorVisible(true)
@@ -66,6 +73,13 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
         const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
         parsedItem[indexToUpdate].Titulo = newText;
         await AsyncStorage.setItem('eventP', JSON.stringify(parsedItem));
+        toast.show('Evento editado', {
+          type: "warning",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "slide-in",
+        })
       } else {
         if(newText.length < 3){
           setModalErrorVisible(true)
@@ -100,12 +114,26 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
       const indexToRemove2 = parsedItem2.findIndex(obj => obj.id === selectedEvent.id);
       parsedItem2.splice(indexToRemove2, 1);
       await AsyncStorage.setItem('newEvents', JSON.stringify(parsedItem2));
+      toast.show('Evento apagado', {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "slide-in",
+      })
     } else {
       // Delete the event from the database
       const nomeUtil = await AsyncStorage.getItem('nomeUtil')
       const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP/${id}`);
       console.log(dbRef)
       dbRef.remove()
+      toast.show('Evento apagado', {
+        type: "danger",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "slide-in",
+      })
     }
     
   };

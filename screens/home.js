@@ -9,6 +9,7 @@ import { global } from "../styles/globals";
 import firebase from 'firebase/app';
 import { database } from '../firebase';
 import 'firebase/database';
+const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 import Icon from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
@@ -32,6 +33,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
    const [isConnected, setIsConnected] = useState();
   const today = new Date().toISOString().split('T')[0];
   const [refreshing, setRefreshing] = useState(false);
+  const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
   useEffect(() => {
     const handleConnectionChange = async (isConnected) => {
       if (isConnected) {
@@ -274,37 +276,63 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
             setUsername(data.NomeAbrev);
           }
         });
-        const dbRef = firebase.database().ref(`users/${nomeUtil}/events`);
-        const dbRef2 = firebase.database().ref(`users/${nomeUtil}/eventsP`);
-        const db = firebase.database();
-        db.ref('/ementa').on('value', snapshot => {
-          const data = snapshot.val();
-          const filteredData = Object.values(data).find(dayData => {
-            const date = moment(dayData.Dta, 'YYYY-M-D');
-            return date.isSame(moment(), 'day');
+         
+  const formatDate = (date) => {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${day < 10 ? '0' + day : day}-${month < 10 ? '0' + month : month}-${year}`;
+  };
+        async function fetchEmentaHome() {
+          const parser = new XMLParser();
+        
+          const today = new Date();
+          const currentDate = formatDate(today);
+        
+          const details = {
+            'tk': tk,
+            'dt1': currentDate,
+            'dt2': currentDate,
+          };
+        
+          var formBody = [];
+          for (var property in details) {
+            var encodedKey = encodeURIComponent(property);
+            var encodedValue = encodeURIComponent(details[property]);
+            formBody.push(encodedKey + "=" + encodedValue);
+          }
+          formBody = formBody.join("&");
+        
+          const response = await fetch('https://www.cic.pt/alunos/srvlistamenu.asp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded;charset=ISO-8859-1'
+            },
+            body: formBody
           });
-          if(filteredData){
-            setEmenta(filteredData);
-          AsyncStorage.setItem('ementaHome',JSON.stringify(filteredData))
-          }
-          else{
-            setEmenta(null)
-            AsyncStorage.removeItem('ementaHome')
-          }
-          
-          
-        });
-      
-        const day = new Date()
-        const dayOfWeek = moment(day, 'YYYY-M-D').locale('pt-br').format('dddd')
-        console.log(ano)
-        console.log(turma)
-        console.log(dayOfWeek)
-        db.ref(`/cantinahorario/${ano}/${turma}/${dayOfWeek}`).on('value', snapshot => {
-          setCantinaHorario(snapshot.val());
-          AsyncStorage.setItem('cantinahorario',JSON.stringify(snapshot.val()))
-        });
-
+        
+          const blob = await response.blob();
+          const text = await convertBlobToText(blob, 'ISO-8859-1');
+        
+          const data = parser.parse(text);
+          setEmenta(data);
+          AsyncStorage.setItem('ementaHome', JSON.stringify(data));
+        }
+        
+        async function convertBlobToText(blob, encoding) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve(reader.result);
+            };
+            reader.onerror = reject;
+            reader.readAsText(blob, encoding);
+          });
+        }
+        
+        fetchEmentaHome();
+        const dbRef2 = firebase.database().ref(`users/${nomeUtil}/eventsP`);
+        const dbRef = firebase.database().ref(`users/${nomeUtil}/events`);
         const dbRef4 = firebase.database().ref('/eventos');
       dbRef4.on('value', snapshot => {
         setEventos(snapshot.val());
@@ -476,7 +504,7 @@ const wait = (timeout) => {
         <Text style={[global.h3,{color:'white'}]}>Não há almoço hoje</Text>
         </View>
          )
-        :(<EmentaItem ementa={ementa} cantinaHorario={cantinaHorario}></EmentaItem>)
+        :(<EmentaItem ementa={ementa} ></EmentaItem>)
 }
       
          

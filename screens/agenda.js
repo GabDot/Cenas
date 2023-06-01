@@ -14,6 +14,7 @@ import { useIsFocused } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect } from '@react-navigation/native';
 import ErrorModal from '../components/ErrorModal';
+import { useToast } from "react-native-toast-notifications";
 const AgendaScreen = React.memo(({route}) => {
   const isFocused = useIsFocused();
   const {runFunction, selectedClickDate} = route.params
@@ -28,6 +29,7 @@ const AgendaScreen = React.memo(({route}) => {
   const today = new Date().toISOString().split('T')[0]; // get today's date in ISO format
   const modalPosition = React.useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
+  const toast = useToast();
   const [errorMessage,setErrorMessage] = useState('');
   const [isLoading,setIsLoading] = useState(true)
 
@@ -411,6 +413,13 @@ loadDataFromStorage();
       }
   
       AsyncStorage.setItem('eventP', JSON.stringify(eventP));
+      toast.show('Evento criado', {
+        type: "success",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "slide-in",
+      })
     } else {
       setIsModal2Visible(true);
       if (selectedDateObj.getTime() < today) {

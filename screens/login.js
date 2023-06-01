@@ -151,6 +151,7 @@ export default function Login({navigation, isLoggedIn, setIsLoggedIn }) {
     AsyncStorage.setItem('data', JSON.stringify(data));
     AsyncStorage.setItem('nomeUtil',NomeUtil);
     AsyncStorage.setItem('ano',data.Ano);
+    AsyncStorage.setItem('user',data.NumAluno);
     AsyncStorage.setItem('turma',data.Turma);
     AsyncStorage.setItem('usernameHome',data.NomeAbrev);
     AsyncStorage.setItem('events', JSON.stringify(events));
@@ -165,6 +166,7 @@ export default function Login({navigation, isLoggedIn, setIsLoggedIn }) {
     AsyncStorage.setItem('nomeUtil',NomeUtil);
     AsyncStorage.setItem('ano',JSON.stringify(data.Ano));
     AsyncStorage.setItem('turma',data.Turma);
+    AsyncStorage.setItem('user',JSON.stringify(data.NumAluno));
     AsyncStorage.setItem('usernameHome',data.NomeAbrev);
     AsyncStorage.setItem('events', JSON.stringify(events));
     await dbRef.set(data);

@@ -7,8 +7,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment/moment';
 import NetInfo from '@react-native-community/netinfo';
 import RadioInput from '../components/radio';
-import * as OpenAnything from "react-native-openanything"
-import { TouchableOpacity } from 'react-native-gesture-handler';
 const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 const Ementa = () => {
   const [ementaData, setEmentaData] = useState(null);
@@ -155,17 +153,10 @@ const wait = (timeout) => {
 
   useEffect(() => {
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
-      console.log(isConnected);
+      console.log("yau",isConnected);
       setIsConnected(state.isConnected);
 
     });
-    // const getDataEmenta = async () => {
-    //   const ementa = await AsyncStorage.getItem('ementa')
-    //   if(ementa !== null){
-    //     setEmentaData(JSON.parse(ementa))
-    //   }
-
-    // } 
     if(isConnected){
       setIsLoading(true)
       async function fetchData() {
@@ -206,8 +197,10 @@ const wait = (timeout) => {
 
   const data = parser.parse(text);
   setEmentaData(data);
+  console.log("ementadata",ementaData)
   AsyncStorage.setItem('ementa', JSON.stringify(data));
   setIsLoading(false);
+  
 }
 
 async function convertBlobToText(blob, encoding) {
@@ -226,50 +219,25 @@ async function convertBlobToText(blob, encoding) {
     
   }
   else{
-    //getDataEmenta()
-    setIsLoading(false)
+   async function getAsyncEmenta()  {
+    AsyncStorage.getItem('ementa')
+    .then((dataString) => {
+      if (dataString) {
+        // Parse the stringified data back to its original structure
+        const ementaData = JSON.parse(dataString);
+        setEmentaData(ementaData)
+        console.log("ementa",ementaData)
+        setIsLoading(false)
+      }
+      })  
+        
+    }
+    setTimeout(getAsyncEmenta, 1500);
   }
   return () => {
     unsubscribeNetInfo();
   };
   }, [isConnected,refreshing]);
-  // useEffect(() => {
-  //   async function fetchData(date) {
-  //     const parser = new XMLParser();
-  //     const details = {
-  //       'tk': 'abc',
-  //       'dt': date,
-  //       'user': '1549'
-  //     };
-    
-  //     var formBody = [];
-  //     for (var property in details) {
-  //       var encodedKey = encodeURIComponent(property);
-  //       var encodedValue = encodeURIComponent(details[property]);
-  //       formBody.push(encodedKey + "=" + encodedValue);
-  //     }
-  //     formBody = formBody.join("&");
-    
-  //     const response = await fetch('https://www.cic.pt/alunos/srvconsultarefeicao.asp', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-  //       },
-  //       body: formBody
-  //     });
-  //     const text = await response.text();
-  //     const data = parser.parse(text);
-  //     setApiData(prevData => ({ ...prevData, [date]: data }));
-      
-  //   }
-  //   if (ementaData) {
-  //     Object.keys(ementaData).forEach(key => {
-  //       const dayData = ementaData[key];
-  //       const date = dayData.Dta;
-  //       fetchData(date);
-  //     });
-  //   }
-  // }, [ementaData, refreshing]);
   if (!ementaData) {
     return <Text>Loading...</Text>;
   }
@@ -391,10 +359,10 @@ async function convertBlobToText(blob, encoding) {
               {console.log("date",dateComp)}
               
               {dateComp>today?(
-                <RadioInput date={date} refreshing={refreshing}/>
+                <RadioInput date={date} refreshing={refreshing} disabled={false}/>
               ):
               (
-                <Text style={[global.h3,{marginTop:10}]}>Não é possível marcar senha para este dia</Text>
+                <RadioInput date={date} refreshing={refreshing} disabled={true}/>
               )}
               
 

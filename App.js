@@ -21,7 +21,7 @@ import Classificacoes from './screens/classificacoes'
 import * as SplashScreen from "expo-splash-screen"
 import { useEffect, useState, createContext } from 'react';
 import { useFonts } from 'expo-font'
-
+import { ToastProvider } from 'react-native-toast-notifications'
 import { LogBox } from 'react-native';
 import { global } from './styles/globals';
 
@@ -55,7 +55,7 @@ export default function App() {
   }
   const Stack = createStackNavigator();
   return (
-    <>
+    <ToastProvider offset={50}>
     <StatusBar style='light' backgroundColor='#9A9DBE'></StatusBar>
 
     <NavigationContainer>
@@ -131,7 +131,7 @@ export default function App() {
        </NavigationContainer>
       
        
-    </>
+    </ToastProvider>
   );
 }
 
