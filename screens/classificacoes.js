@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useDebugValue } from 'react';
-import { View, Text, StyleSheet,ScrollView, Pressable,RefreshControl,ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet,ScrollView, Pressable,RefreshControl,ActivityIndicator,Modal,TouchableOpacity } from 'react-native';
 import firebase from 'firebase';
 import Collapsible from 'react-native-collapsible';
 import Header from '../components/Header';
 import { global } from '../styles/globals';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 
 const Classificacoes = () => {
@@ -14,8 +15,11 @@ const Classificacoes = () => {
   const [activeTests, setActiveTests] = useState([]);
   const [isConnected, setIsConnected] = useState();
   const [nomeUtil,setNomeUtil] = useState();
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const[activeSemesters,setActiveSemesters] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [notas,setNotas] = useState([])
+  const [pesos,setPesos] = useState([])
   const [isLoading,setIsLoading] = useState(true);
   const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
   const API_URL = 'https://geweb3.cic.pt/GEWebApi/token';
@@ -224,6 +228,11 @@ async function convertBlobToText(blob, encoding) {
     // Call a function to fetch new data here
     wait(2000).then(() => setRefreshing(false));
   };
+  const mediaCalc = (pesos,notas) => {
+    const totalWeight = pesos.reduce((acc, peso) => acc + peso, 0);
+  const weightedAverage = notas.reduce((acc, nota, index) => acc + (nota * pesos[index]), 0) / totalWeight;
+  setMedia(weightedAverage)
+  }
 
   const toggleExpanded = (collapsibleIndex, testIndex) => {
     if (testIndex === undefined) {
@@ -269,13 +278,30 @@ async function convertBlobToText(blob, encoding) {
         />
       }
     >
+        <Modal
+        animationType='fade'
+        visible={isModalVisible}
+        onRequestClose={() => setIsModalVisible(false)}
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+
+          <View style={styles.modalContent}>
+            <TouchableOpacity style={[styles.closeButton]} onPress={() => setIsModalVisible(false)}>
+              <Text style={global.p}>X</Text>
+            </TouchableOpacity>
+            <Text style={global.p}>WAA</Text>
+          </View>
+        </View>
+      </Modal>
+
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
     
     <View style={styles.container}>
       <Text style={[global.h2,{marginBottom:10}]}>Classificações</Text>
       {Array.isArray(classificacoes.classificacoes.disciplina) && classificacoes.classificacoes.disciplina.map((item, index) => (
   <View key={index}>
-    <Pressable onPress={() => toggleExpanded(index)} style={{ backgroundColor: '#778ca3', padding: 10, marginBottom: 10, marginTop: 10, borderRadius: 10 }}>
+    <Pressable onPress={() => toggleExpanded(index)}  style={{ backgroundColor: '#778ca3', padding: 10, marginBottom: 10, marginTop: 10, borderRadius: 10 }}>
       <Text style={[global.h3, { color: 'white' }]}>{item.nome}</Text>
     </Pressable>
     <Collapsible collapsed={!activeSections.includes(index)}>
@@ -286,13 +312,10 @@ async function convertBlobToText(blob, encoding) {
             <Text style={[global.h3,{color:'white',fontSize:16}]}>{test.data}</Text>
             <Text style={[global.h3,{color:'white',fontSize:16}]}>{test.nota}</Text>
           </View>
+          
         </Pressable>
         <Collapsible
-          collapsed={
-            !activeTests.some(
-              (testItem) => testItem.collapsibleIndex === index
-            )
-          }
+          collapsed={ !activeTests.some( (testItem) => testItem.collapsibleIndex === index && testItem.testIndex === testIndex ) }
         >
           <View style={{ backgroundColor: 'white', marginBottom: 10, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, padding: 10 }}>
             {test.tipo && (
@@ -404,5 +427,27 @@ const styles = StyleSheet.create({
     paddingBottom:'30%',
     paddingHorizontal: '3%',
     height: '100%',
+  },modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 35,
+    elevation: 5,
+
+  },closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 25,
+    height: 25,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

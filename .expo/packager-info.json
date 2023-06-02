@@ -1,9 +1,9 @@
 {
-  "expoServerNgrokUrl": null,
-  "packagerNgrokUrl": null,
-  "ngrokPid": null,
-  "expoServerPort": 19000,
-  "packagerPort": 19000,
+  "expoServerNgrokUrl": "https://7g-5t9.dotponto.cenas.exp.direct",
+  "packagerNgrokUrl": "https://7g-5t9.dotponto.cenas.exp.direct",
+  "ngrokPid": 15456,
+  "expoServerPort": null,
+  "packagerPort": 8081,
   "packagerPid": null,
   "webpackServerPort": null
 }

@@ -6,6 +6,7 @@ import ErrorModal from './ErrorModal';
 import NetInfo from '@react-native-community/netinfo';
 const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 import { useToast } from "react-native-toast-notifications";
+import moment from 'moment/moment';
 const RadioInput = ({date,refreshing,disabled}) => {
     const options = [
         { label: 'Carne', value: 'N' },
@@ -23,8 +24,11 @@ const RadioInput = ({date,refreshing,disabled}) => {
       const [isConnected, setIsConnected] = useState();
       const [eaten,setEaten] = useState('')
       const toast = useToast();
+      const today = new Date();
+      const formattedToday = moment(today).format('DD/MM/YYYY');
       const [eatenTime,setEatenTime] = useState('')
-      
+      console.log("today formatado",formattedToday)
+      console.log("datas",date)
       const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
 
 
@@ -210,8 +214,9 @@ const RadioInput = ({date,refreshing,disabled}) => {
           style={[styles.option, selectedOption === option.value && styles.selected]}
           onPress={() => handleOptionSelect(option.value)}
         >
+          
           <View style={[styles.radio, selectedOption === option.value && styles.selectedRadio]} />
-          <Text style={styles.optionText}>{option.label}</Text>
+          <Text style={global.p}>{option.label}</Text>
         </TouchableOpacity>
       ))}
         </View>
@@ -229,8 +234,9 @@ const RadioInput = ({date,refreshing,disabled}) => {
           style={[styles.option, selectedOption === option.value && styles.selected]}
           
         >
-          <View style={[styles.radio, selectedOption === option.value && styles.selectedRadio]} />
-          <Text style={styles.optionText}>{option.label}</Text>
+          
+          <View style={[styles.radio,formattedToday==date&&{borderColor:'white'} ,selectedOption === option.value && styles.selectedRadio]} />
+<Text style={[global.p,formattedToday==date&&{color:'white'}]}>{option.label}</Text>
         </View>
       ))}
         </View>

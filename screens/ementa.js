@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet,ScrollView,RefreshControl,Button,ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet,ScrollView,RefreshControl,Button,ActivityIndicator, TouchableOpacity } from 'react-native'
 import Header from '../components/Header';
 import firebase from 'firebase';
 import { global } from "../styles/globals";
@@ -8,17 +8,20 @@ import moment from 'moment/moment';
 import NetInfo from '@react-native-community/netinfo';
 import RadioInput from '../components/radio';
 const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
+import DatePicker from 'react-native-date-picker'
+
 const Ementa = () => {
   const [ementaData, setEmentaData] = useState(null);
   const [isConnected, setIsConnected] = useState();
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading,setIsLoading] = useState(true);
+  const [today,setToday] = useState(new Date());
   const [date1,setDate1] = useState();
-  const today = new Date();
   const [date2,setDate2] = useState();
+  const todayToday = new Date();
   const tk = 'Y-WywHe6uXAVa9z9yfUZVfEuODDRzbftZ-0JylWY0kqb46MXL9FYloflIO5vnj4vPS1V3hJ4aP0YasupkgI0FdpvYBt9PCcGDdd5lbGazugYZWvy0YiPPdCeuYkJS5Wr5JRZEC3jye8r3LXQSM3QM673d-uXXbeL_VmWrd8NGa3LlcRonsgqT6aNLoRcqpSZBNQBkRTc1e2g-NU82g4b-7bNDU1sJyp0KuiBVHggwO9dH5kOwAa3rN1oivBW0jtedDeYNEQe8QAMYWxGXviIg3X9TIbzPX7dSt759rJtK92ecqd8e60bRyTOcOUMhD8z';
   const API_URL = 'https://geweb3.cic.pt/GEWebApi/token';
-  
+  const [open, setOpen] = useState(false)
   const [apiData, setApiData] = useState({});
 
   
@@ -162,8 +165,9 @@ const wait = (timeout) => {
       async function fetchData() {
         const parser = new XMLParser();
         
-        const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-        const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+        const todayCopy = new Date(today.getTime());
+const firstDayOfWeek = new Date(todayCopy.setDate(todayCopy.getDate() - todayCopy.getDay()));
+        const lastDayOfWeek = new Date(todayCopy.setDate(todayCopy.getDate() - todayCopy.getDay() + 8));
         const dt1 = formatDate(firstDayOfWeek);
         const dt2 = formatDate(lastDayOfWeek);
         setDate1(moment(dt1, 'DD/MM/YYYY').startOf('day'))
@@ -197,7 +201,6 @@ const wait = (timeout) => {
 
   const data = parser.parse(text);
   setEmentaData(data);
-  console.log("ementadata",ementaData)
   AsyncStorage.setItem('ementa', JSON.stringify(data));
   setIsLoading(false);
   
@@ -241,10 +244,11 @@ async function convertBlobToText(blob, encoding) {
   if (!ementaData) {
     return <Text>Loading...</Text>;
   }
-  const menuData = ementaData.ementa.menu;
+  const menuData = ementaData && ementaData.ementa && ementaData.ementa.menu;
+
   return (
     
-    isLoading ? (
+    isLoading  ? (
       <View style={{ flex: 1 }}>
         
          <Header></Header>
@@ -252,8 +256,11 @@ async function convertBlobToText(blob, encoding) {
         </View>
         
       ):(
-    <View  style={{flex:1}}>
+        menuData? (
+<View  style={{flex:1}}>
       <Header></Header>
+      <View style={{marginTop:20,marginLeft:'8%'}}>
+      </View>
       <ScrollView
       refreshControl={
         <RefreshControl
@@ -263,8 +270,24 @@ async function convertBlobToText(blob, encoding) {
       }
     >
       <ScrollView style={{flex:1}}>
-
-      {menuData.map((dayData, index) => {
+        {isConnected&&(<TouchableOpacity style={styles.submitButton} title="Open" onPress={() => setOpen(true)} ><Text style={[global.p,{color:'white',fontSize:20}]}>Trocar data: {moment(today).format('DD/MM/YYYY')}</Text></TouchableOpacity>)}
+      
+      
+      <DatePicker
+        modal
+        open={open}
+        date={today}
+        mode='date'
+        onConfirm={(date) => {
+          setOpen(false)
+          setToday(date)
+          onRefresh();
+        }}
+        onCancel={() => {
+          setOpen(false)
+        }}
+      />
+      {menuData && menuData.map((dayData, index) => {
       const date = dayData.data;
       const dateComp = moment(dayData.data, 'DD/MM/YYYY').startOf('day')
       const carne = dayData.normal["#text"] || dayData.normal
@@ -358,7 +381,7 @@ async function convertBlobToText(blob, encoding) {
               </Text>
               {console.log("date",dateComp)}
               
-              {dateComp>today?(
+              {dateComp>todayToday?(
                 <RadioInput date={date} refreshing={refreshing} disabled={false}/>
               ):
               (
@@ -373,6 +396,33 @@ async function convertBlobToText(blob, encoding) {
      </ScrollView>
      </ScrollView>
     </View>
+        ):(
+          <View style={{ flex: 1 }}>
+        
+         <Header></Header>
+        
+         <TouchableOpacity style={styles.submitButton} title="Open" onPress={() => setOpen(true)} ><Text style={[global.p,{color:'white',fontSize:20}]}>Trocar data: {moment(today).format('DD/MM/YYYY')}</Text></TouchableOpacity>
+         
+         <View style={{justifyContent:'center',alignItems:'center',flex:1}}>
+         <Text style={global.h3}>Não existem almoços neste dia</Text>
+         </View>
+         <DatePicker
+        modal
+        open={open}
+        date={today}
+        mode='date'
+        onConfirm={(date) => {
+          setOpen(false)
+          setToday(date)
+          onRefresh();
+        }}
+        onCancel={() => {
+          setOpen(false)
+        }}
+      />
+        </View>
+        )
+    
    
   )
   )
@@ -384,7 +434,19 @@ const styles = StyleSheet.create({
         paddingVertical:25
         
     },
-    title:{
-      
-    }
+    submitButton: {
+      marginTop:5,
+      backgroundColor: '#9abebb',
+      padding: 5,
+      width: '100%',
+      height: 50,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+  
+    },
+    submitButtonText: {
+      color: '#fff',
+      fontSize: 16,
+    },
 })
