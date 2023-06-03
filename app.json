@@ -3,6 +3,7 @@
     "name": "areareservada",
     "slug": "areareservada",
     "version": "1.0.0",
+    "scheme":"areareservadacic",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

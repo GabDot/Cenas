@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl,ActivityIndicator } from 'react-native';
+import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl,ActivityIndicator,Button } from 'react-native';
 import { Calendar, LocaleConfig, CalendarList } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header';
@@ -15,6 +15,9 @@ import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect } from '@react-navigation/native';
 import ErrorModal from '../components/ErrorModal';
 import { useToast } from "react-native-toast-notifications";
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+WebBrowser.maybeCompleteAuthSession();
 const AgendaScreen = React.memo(({route}) => {
   const isFocused = useIsFocused();
   const {runFunction, selectedClickDate} = route.params
@@ -554,8 +557,14 @@ loadDataFromStorage();
       disabledMonths[monthString] = { disabled: true };
     }
   }
+///////////////////////////////////////
 
+const [request, response, promptAsync] = Google.useAuthRequest({
+  androidClientId: '590857088944-g3db3hiakso6vqb9uapnur6711qkjfum.apps.googleusercontent.com',
+  
+});
 
+console.log(response);
   return (
 !isLoading ? (
   <>
@@ -606,6 +615,13 @@ loadDataFromStorage();
   }
 >
   <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+  <Button
+  title="Sign in with Google"
+  disabled={!request}
+  onPress={() => {
+    promptAsync();
+  }}
+/>
     <Calendar
       onDayPress={onDayPress}
       markingType={'period'}

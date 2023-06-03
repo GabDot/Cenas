@@ -22,96 +22,132 @@ export default function EmentaItem({ementa}) {
       <>
       
       
-        <TouchableOpacity style={[{ marginTop: 30 }]} onPress={handlePress}>
-          <View style={styles.ementaItem}>
-            {ementa != '' ? (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ width: '70%' }}>
-                  <Text style={[global.h3,{color:'white',fontSize:17}]}>{ementa.ementa.menu.normal && typeof ementa.ementa.menu.normal === 'object' ? ementa.ementa.menu.normal['#text'] : ementa.ementa.menu.normal} </Text>
-                  
-                </View>
-                <Icon2 name="chevron-small-right" size={40} color="white" style={{ marginRight: 15 }} />
-              </View>
-            ) : (
-              <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>A carregar ementa...</Text>
-            )}
-          </View>
-        </TouchableOpacity>
-        
-        <Modal visible={modalVisible} animationType="fade" transparent={true}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalContainer}>
-            <Text style={[global.h2,{color:'white'}]}>Ementa</Text>
-            <View 
-            style={{ marginTop: 10 }}>
-            {ementa != '' ? (
-              <>
-              <Text
+      <TouchableOpacity style={[{ marginTop: 30 }]} onPress={handlePress}>
+  <View style={styles.ementaItem}>
+    {ementa && ementa.ementa && ementa.ementa.menu ? (
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <View style={{ width: "70%" }}>
+          <Text
+            style={[
+              global.h3,
+              { color: "white", fontSize: 17 },
+            ]}
+          >
+            {ementa.ementa.menu.normal &&
+            typeof ementa.ementa.menu.normal === "object"
+              ? ementa.ementa.menu.normal["#text"]
+              : ementa.ementa.menu.normal}{" "}
+          </Text>
+        </View>
+        <Icon2
+          name="chevron-small-right"
+          size={40}
+          color="white"
+          style={{ marginRight: 15 }}
+        />
+      </View>
+    ) : (
+      <Text style={{ fontWeight: "bold", color: "white", fontSize: 18 }}>
+       Não há almoço hoje
+      </Text>
+    )}
+  </View>
+</TouchableOpacity>
+
+<Modal visible={modalVisible} animationType="fade" transparent={true}>
+  <View style={styles.centeredView}>
+    <View style={styles.modalContainer}>
+      <Text style={[global.h2, { color: "white" }]}>Ementa</Text>
+      <View style={{ marginTop: 10 }}>
+        {ementa && ementa.ementa && ementa.ementa.menu ? (
+          <>
+            <Text
               style={[
                 { marginBottom: 5, marginTop: 5 },
                 global.h3,
-                { color: 'white' },
+                { color: "white" },
               ]}
             >
               CARNE:
             </Text>
-            <Text style={[global.p, { color: 'white' }]}>
-              {ementa.ementa.menu.normal && typeof ementa.ementa.menu.normal === 'object' ? ementa.ementa.menu.normal['#text'] : ementa.ementa.menu.normal}
+            <Text style={[global.p, { color: "white" }]}>
+              {ementa.ementa.menu.normal &&
+              typeof ementa.ementa.menu.normal === "object"
+                ? ementa.ementa.menu.normal["#text"]
+                : ementa.ementa.menu.normal}
             </Text>
             <Text
               style={[
                 { marginBottom: 5, marginTop: 5 },
                 global.h3,
-                { color: 'white' },
+                { color: "white" },
               ]}
             >
               PEIXE:
             </Text>
-            <Text style={[global.p, { color: 'white' }]}>
-              {ementa.ementa.menu.opcao && typeof ementa.ementa.menu.opcao === 'object' ? ementa.ementa.menu.opcao['#text'] : ementa.ementa.menu.opcao}
+            <Text style={[global.p, { color: "white" }]}>
+              {ementa.ementa.menu.opcao &&
+              typeof ementa.ementa.menu.opcao === "object"
+                ? ementa.ementa.menu.opcao["#text"]
+                : ementa.ementa.menu.opcao}
             </Text>
             <Text
               style={[
                 { marginBottom: 5, marginTop: 5 },
                 global.h3,
-                { color: 'white' },
+                { color: "white" },
               ]}
             >
               DIETA:
             </Text>
-            <Text style={[global.p, { color: 'white' }]}>
-              {ementa.ementa.menu.dieta && typeof ementa.ementa.menu.dieta === 'object' ? ementa.ementa.menu.dieta['#text'] : ementa.ementa.menu.dieta}
+            <Text style={[global.p, { color: "white" }]}>
+              {ementa.ementa.menu.dieta &&
+              typeof ementa.ementa.menu.dieta === "object"
+                ? ementa.ementa.menu.dieta["#text"]
+                : ementa.ementa.menu.dieta}
             </Text>
             <Text
               style={[
                 { marginBottom: 5, marginTop: 5 },
                 global.h3,
-                { color: 'white' },
+                { color: "white" },
               ]}
             >
               VEGETARIANO:
             </Text>
-            <Text style={[global.p, { color: 'white' }]}>
-              {ementa.ementa.menu.vegetariano && typeof ementa.ementa.menu.vegetariano === 'object' ? ementa.ementa.menu.vegetariano['#text'] : ementa.ementa.menu.vegetariano}
+            <Text style={[global.p, { color: "white" }]}>
+              {ementa.ementa.menu.vegetariano &&
+              typeof ementa.ementa.menu.vegetariano === "object"
+                ? ementa.ementa.menu.vegetariano["#text"]
+                : ementa.ementa.menu.vegetariano}
             </Text>
             <Text
               style={[
                 { marginBottom: 5, marginTop: 5 },
                 global.h3,
-                { color: 'white' },
+                { color: "white" },
               ]}
             >
               SOBREMESA:
             </Text>
-            <Text style={[global.p, { color: 'white' }]}>
-              {ementa.ementa.menu.sobremesa && typeof ementa.ementa.menu.sobremesa === 'object' ? ementa.ementa.menu.sobremesa['#text'] : ementa.ementa.menu.sobremesa}
+            <Text style={[global.p, { color: "white" }]}>
+              {ementa.ementa.menu.sobremesa &&
+              typeof ementa.ementa.menu.sobremesa === "object"
+                ? ementa.ementa.menu.sobremesa["#text"]
+                : ementa.ementa.menu.sobremesa}
             </Text>
-         
           </>
-            ) : (
-              <Text>Loading</Text>
-            )}
-</View>
+        ) : (
+          <Text>Loading</Text>
+        )}
+      </View>
+
 
 
             <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
