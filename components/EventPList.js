@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
+import React, { useState,useEffect,useRef } from 'react';
+import { Text, View, StyleSheet, TouchableOpacity, Modal, TextInput, TurboModuleRegistryr } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { global } from '../styles/globals';
 import firebase from 'firebase/app';
@@ -7,41 +7,63 @@ import { database } from '../firebase';
 import 'firebase/database';
 import ErrorModal from './ErrorModal';
 import { useToast } from "react-native-toast-notifications";
+import RNCalendarEvents from "react-native-calendar-events";
+import { event } from 'react-native-reanimated';
 const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefresh }) => {
  
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modal2Visible, setModal2Visible] = useState(false);
+  const [modal3Visible, setModal3Visible] = useState(false);
   const [modalErrorVisible, setModalErrorVisible] = useState(false);
   const [errorMessage,setErrorMessage] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(['a']);
+  const [hasRecurrence,setRecurrence] = useState();
   const toast = useToast();
   const [newText, setNewText] = useState('')
+  const all = 'all'
+  const future = 'future'
 
   const filteredEvents = events.filter(event => event.DtaIni === selectedDate);
 
-  const handleEdit = async (id) => {
+  const handleEdit = async (idDb,id) => {
     setModal2Visible(false);
     
     // Check if the device is offline
     if (!isConnected) {
-      if(newText.length > 3 && newText.length < 20){
-        // Store the edited event in AsyncStorage and update the original event
+      if(newText.length >= 3 && newText.length < 20){
+        toast.show('esta tarefa pode demorar alguns segundos', {
+          type: "warning",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "slide-in",
+        })
         const editedEvents = await AsyncStorage.getItem('editedEvents');
+       
         const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
+        
         const item = await AsyncStorage.getItem('eventP');
+        
         const parsedItem = JSON.parse(item);
+       
         const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
+       
         parsedItem[indexToUpdate].Titulo = newText;
         parsedEditedEvents.push(parsedItem[indexToUpdate]);
-
+       
+        RNCalendarEvents.saveEvent(newText,{
+          id:id
+        })
         const currentDate = new Date();
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 15);
         const eventDate = new Date(parsedItem[indexToUpdate].DtaIni);
         // Update the original event data in AsyncStorage with the edited event data
         const originalEventIndex = parsedItem.findIndex(obj => obj.id === id);
+        console.log("originaleventindex",originalEventIndex)
         parsedItem[originalEventIndex].Titulo = newText;
+        console.log("parsedItem",parsedItem);
         await AsyncStorage.setItem('eventP', JSON.stringify(parsedItem));
   
         await AsyncStorage.setItem('editedEvents', JSON.stringify(parsedEditedEvents));
@@ -53,7 +75,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
           animationType: "slide-in",
         })
       } else {
-        if(newText.length < 3){
+        if(newText.length <= 3){
           setModalErrorVisible(true)
           setErrorMessage('O novo nome dado ao evento é demasiado pequeno')
         } else {
@@ -62,12 +84,22 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
         }
       }
     } else {
-      if(newText.length > 3 && newText.length < 20){
+      if(newText.length >= 3 && newText.length < 20){
         const nomeUtil = await AsyncStorage.getItem('nomeUtil')
-        const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP/${id}`);
+        toast.show('esta tarefa pode demorar alguns segundos', {
+          type: "warning",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "slide-in",
+        })
+        const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP/${idDb}`);
         dbRef.update({
           Titulo: newText
         });
+        RNCalendarEvents.saveEvent(newText,{
+          id:id
+        })
         const item = await AsyncStorage.getItem('eventP');
         const parsedItem = JSON.parse(item);
         const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
@@ -81,7 +113,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
           animationType: "slide-in",
         })
       } else {
-        if(newText.length < 3){
+        if(newText.length <= 3){
           setModalErrorVisible(true)
           setErrorMessage('O novo nome dado ao evento é demasiado pequeno')
         } else {
@@ -93,17 +125,20 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
   };
   
   
-  const handleDelete = async (id) => {
+  const handleDelete = async (idDb,id,rec,selectedDate) => {
     setModalVisible(false);
-  
+    setModal3Visible(false)
     // Check if the device is offline
     if (!isConnected) {
       // Store the ID of the deleted event in AsyncStorage
+     
       const deletedEvents = await AsyncStorage.getItem('deletedEvents');
       const parsedDeletedEvents = deletedEvents ? JSON.parse(deletedEvents) : [];
-      parsedDeletedEvents.push(id);
+      parsedDeletedEvents.push(idDb);
+      RNCalendarEvents.removeEvent(id)
       const item = await AsyncStorage.getItem('eventP');
     const parsedItem = JSON.parse(item);
+    console.log(parsedItem)
     const indexToRemove = parsedItem.findIndex(obj => obj.id === selectedEvent.id);
     parsedItem.splice(indexToRemove, 1);
     await AsyncStorage.setItem('eventP', JSON.stringify(parsedItem));
@@ -122,11 +157,22 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
         animationType: "slide-in",
       })
     } else {
-      // Delete the event from the database
+      
       const nomeUtil = await AsyncStorage.getItem('nomeUtil')
-      const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP/${id}`);
-      console.log(dbRef)
+      const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP/${idDb}`);
+      const startDate = new Date(selectedDate);
+      const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+      
       dbRef.remove()
+      if(rec == 'all'){
+        RNCalendarEvents.removeEvent(id)
+      }
+      else if(rec =='future'){
+        RNCalendarEvents.removeEvent(id,{exceptionDate: startDate.toISOString(),
+          futureEvents:true})
+        
+      }
+      /*Se for todos, a data é global e apaga um a um dessa data, se for apenas os futuros, a data é apartir desse dia selecionado e apagada todos pra frente*/
       toast.show('Evento apagado', {
         type: "danger",
         placement: "bottom",
@@ -137,7 +183,49 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
     }
     
   };
+  const checkEventRecurrence = async (selectedDate) => {
+    try {
+      const startDate = new Date(selectedDate);
+      const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+      const events = await RNCalendarEvents.fetchAllEvents(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      const check = events.filter(event => event.recurrence === 'daily' || event.recurrence === 'weekly' || event.recurrence === 'monthly');
+      if(check.length > 0){
+       
+        setRecurrence(true);
+       
+        
+      }
+      else{
+        setRecurrence(false);
+        
+       
+      }
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+    
+  };
+  const isFirstRender = useRef(true);
 
+useEffect(() => {
+  if (!isFirstRender.current) {
+    handleDeleteEvent();
+    console.log("wow")
+  } else {
+    isFirstRender.current = false;
+  }
+}, [hasRecurrence]);
+  const handleDeleteEvent = () => {
+    if (hasRecurrence) {
+      setModal3Visible(true);
+    } else {
+      handleDelete(selectedEvent.idDb, selectedEvent.id, all);
+    }
+  };
   return (
     
     <View style={styles.infoContainer}>
@@ -154,7 +242,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
             <Text style={[{ marginTop: 10, marginBottom: 20 }, global.p]}>O que pretende fazer com este evento?</Text>
             <View style={{ flexDirection: 'row', }}>
               
-              <TouchableOpacity style={[styles.deleteButton,{marginRight:15}]} onPress={() => handleDelete(selectedEvent.id)}>
+              <TouchableOpacity style={[styles.deleteButton,{marginRight:15}]} onPress={() =>{checkEventRecurrence(selectedEvent.DtaIni)}}>
 
                 <Text style={[global.p, { color: '#9abebb' }]}>Apagar</Text>
               </TouchableOpacity>
@@ -195,7 +283,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
                 <Text style={[global.p, { color: '#9abebb' }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.submitButton]} >
-                <Text style={[global.p, { color: 'white' }]} onPress={() => handleEdit(selectedEvent.id)}>Submeter</Text>
+                <Text style={[global.p, { color: 'white' }]} onPress={() => handleEdit(selectedEvent.idDb,selectedEvent.id)}>Submeter</Text>
               </TouchableOpacity>
 
 
@@ -206,10 +294,37 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
           </View>
         </View>
       </Modal>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modal3Visible}
+        onRequestClose={() => setModal3Visible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={[{ fontWeight: 'bold' }, global.h2]}>{selectedEvent.Titulo}</Text>
+           
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around' ,marginTop:10}}>
+              <TouchableOpacity style={[styles.cancelButton]} onPress={() =>{ handleDelete(selectedEvent.idDb,selectedEvent.id,all)}}>
+
+                <Text style={[global.p, { color: '#9abebb' }]}>Apagar todos</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.submitButton]} >
+                <Text style={[global.p, { color: 'white' }]} onPress={() =>{ handleDelete(selectedEvent.idDb,selectedEvent.id,future,selectedEvent.DtaIni)}}>Apagar futuros</Text>
+              </TouchableOpacity>
+
+
+            </View>
+            <TouchableOpacity style={[styles.closeButton]} onPress={() => setModal3Visible(false)}>
+              <Text style={global.p}>X</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       {filteredEvents.length > 0 ? (
   filteredEvents.map(event => (
     <TouchableOpacity
-      key={event.Titulo}
+      key={`${event.id}-${event.startDate}`}
       onPress={() => {
         setSelectedEvent(event);
         setModalVisible(true);

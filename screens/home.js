@@ -16,9 +16,10 @@ import NetInfo from '@react-native-community/netinfo';
 import EmentaItem from '../components/EmentaItem';
 import moment from 'moment/moment';
 import ErrorModal from '../components/ErrorModal';
-
+import RNCalendarEvents from "react-native-calendar-events";
+import { event } from 'react-native-reanimated';
 export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
-
+  RNCalendarEvents.requestPermissions();
   const [eventos, setEventos] = useState([]);
   const [agenda, setAgenda] = useState([]);
   const [message,setMessage] = useState('')
@@ -52,7 +53,7 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
         const newEvents = await AsyncStorage.getItem('newEvents');
         const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
         parsedNewEvents.forEach(event => {
-          const newEventRef = dbRef.child(event.id);
+          const newEventRef = dbRef.child(event);
           newEventRef.set(event);
         });
         await AsyncStorage.removeItem('newEvents');
@@ -61,9 +62,11 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
         
        
         const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
+        console.log("parsededitevents",parsedEditedEvents)
         await Promise.all(parsedEditedEvents.map(async (event) => {
-         
-          const editedEventsRef = dbRef.child(event.id);
+        
+          const editedEventsRef = dbRef.child(event.idDb);
+          console.log(editedEventsRef)
           const snapshot = await editedEventsRef.once('value');
           if (snapshot.exists()) {
             editedEventsRef.update(event);
@@ -364,29 +367,56 @@ export default function Home({ navigation, isLoggedIn, setIsLoggedIn }) {
           setAgenda(eventsArray);
           AsyncStorage.setItem('eventsHome', JSON.stringify(eventsArray));
         });
-    
-        dbRef2.on('value', (snapshot) => {
-          const data = snapshot.val();
-          const eventsPArray = [];
-          for (let key in data) {
-            const eventDate = new Date(data[key].DtaIni);
-            if (
-              eventDate >= currentDate &&
-              eventDate <= futureDate &&
-              data[key].Tipo !== 'I' && 
-              data[key].Tipo !== 'F'
-            ) {
-              eventsPArray.push(data[key]);
-            }
+        const getCalendarEvents = async () => {
+          try {
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 16);
+             // today
+            endDate.setFullYear(endDate.getFullYear() + 10); // 10 years from now
+        
+            const events = await RNCalendarEvents.fetchAllEvents(
+              startDate.toISOString(),
+              endDate.toISOString()
+            );
+            const cicPessoalEvents = events.filter(event => event.description === 'CIC pessoal' && event.recurrence!='daily' && event.recurrence!='monthly' && event.recurrence!='weekly' );
+            console.log(cicPessoalEvents)
+            const formattedEvents = cicPessoalEvents.map(event => ({
+              Titulo: event.title,
+              DtaIni: event.startDate.split('T')[0], // YYYY-MM-DD format
+              id: event.id,
+              idDb: 'some value',
+            }));
+            return formattedEvents;
+          } catch (error) {
+            console.error(error);
           }
-          if (eventsPArray.length > 0) {
-            setAgendaP(eventsPArray);
-            AsyncStorage.setItem('eventPHome', JSON.stringify(eventsPArray));
-          } else {
-            setAgendaP([]);
-            AsyncStorage.removeItem('eventPHome');
-          }
-        });
+        };
+        const calendarEventP = await getCalendarEvents();
+
+        setAgendaP(calendarEventP)
+        // dbRef2.on('value', (snapshot) => {
+        //   const data = snapshot.val();
+        //   const eventsPArray = [];
+        //   for (let key in data) {
+        //     const eventDate = new Date(data[key].DtaIni);
+        //     if (
+        //       eventDate >= currentDate &&
+        //       eventDate <= futureDate &&
+        //       data[key].Tipo !== 'I' && 
+        //       data[key].Tipo !== 'F'
+        //     ) {
+        //       eventsPArray.push(data[key]);
+        //     }
+        //   }
+        //   if (eventsPArray.length > 0) {
+        //     setAgendaP(eventsPArray);
+        //     AsyncStorage.setItem('eventPHome', JSON.stringify(eventsPArray));
+        //   } else {
+        //     setAgendaP([]);
+        //     AsyncStorage.removeItem('eventPHome');
+        //   }
+        // });
         setIsLoading(false);
       };
       setTimeout(getData, 1500);

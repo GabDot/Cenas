@@ -36,7 +36,6 @@ export default function App() {
     'sans-regular': require('./assets/fonts/PublicSans-Regular.ttf'),
     'sans-semibold': require('./assets/fonts/PublicSans-SemiBold.ttf')
   })
-
   useEffect(() => {
     async function prepare() {
       await SplashScreen.preventAutoHideAsync();

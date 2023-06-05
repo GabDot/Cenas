@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl,ActivityIndicator,Button } from 'react-native';
+import { Text, View, Modal, TouchableOpacity, StyleSheet, ScrollView, Animated, TextInput,RefreshControl,ActivityIndicator,Button,Switch } from 'react-native';
 import { Calendar, LocaleConfig, CalendarList } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header';
@@ -17,6 +17,9 @@ import ErrorModal from '../components/ErrorModal';
 import { useToast } from "react-native-toast-notifications";
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import RNCalendarEvents from "react-native-calendar-events";
+import AlertPreferenceModal from '../components/AlertPrefrenceModal';
+import Icon from 'react-native-vector-icons/Ionicons';
 WebBrowser.maybeCompleteAuthSession();
 const AgendaScreen = React.memo(({route}) => {
   const isFocused = useIsFocused();
@@ -24,6 +27,8 @@ const AgendaScreen = React.memo(({route}) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModal2Visible, setIsModal2Visible] = useState(false);
+  const [isModal3Visible, setIsModal3Visible] = useState(false);
+  const [isModal4Visible, setIsModal4Visible] = useState(false);
   const [turma, setTurma] = useState('');
   const [eventDates, setEventDates] = useState([]);
   const [nomeUtil,setNomeUtil] = useState('');
@@ -52,18 +57,18 @@ const AgendaScreen = React.memo(({route}) => {
         const newEvents = await AsyncStorage.getItem('newEvents');
         const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
         parsedNewEvents.forEach(event => {
-          const newEventRef = dbRef.child(event.id);
+          const newEventRef = dbRef.child(event.idDb);
           newEventRef.set(event);
         });
         await AsyncStorage.removeItem('newEvents');
 
         const editedEvents = await AsyncStorage.getItem('editedEvents');
         
-        console.log(`nomeUtil: ${nomeUtil}`);
+       
         const parsedEditedEvents = editedEvents ? JSON.parse(editedEvents) : [];
         await Promise.all(parsedEditedEvents.map(async (event) => {
-          console.log(`event.id: ${event.id}`);
-          const editedEventsRef = dbRef.child(event.id);
+         
+          const editedEventsRef = dbRef.child(event.idDb);
           const snapshot = await editedEventsRef.once('value');
           if (snapshot.exists()) {
             editedEventsRef.update(event);
@@ -91,8 +96,7 @@ const AgendaScreen = React.memo(({route}) => {
     
     const username = await AsyncStorage.getItem('username');
     const password = await AsyncStorage.getItem('password');
-    console.log(username)
-    console.log(password)
+  
     if(isConnected){
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -111,7 +115,7 @@ const AgendaScreen = React.memo(({route}) => {
         return;
       }
       const dataToken = await response.json();
-      console.log(dataToken.access_token)
+      
       await AsyncStorage.setItem('token', dataToken.access_token);
       const expirationTime = Date.now() + dataToken.expires_in * 1000;
       await AsyncStorage.setItem('expirationTime', expirationTime.toString());
@@ -131,7 +135,7 @@ const AgendaScreen = React.memo(({route}) => {
     const username = await AsyncStorage.getItem('username');
     const exists = await checkUserExists(username);
     if (exists) {
-      console.log('User exists');
+     
       const data = await getData(token);
       const events = await getEvents(token);
       updateUser(data.NomeUtil, data, events);
@@ -155,8 +159,80 @@ const AgendaScreen = React.memo(({route}) => {
       
     }
   };
+  const createCalendarEvents = async (events) => {
+    // get alertPreference from AsyncStorage
+    const alertPreference = await AsyncStorage.getItem('alertPreference');
+  
+    for (const event of events) {
+      const { Titulo, DtaIni, Tipo } = event;
+      if (Tipo != 'F' && Tipo != 'I') {
+        const startDate = new Date(DtaIni);
+        const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 1 day later
+        
+       
+        let alarmDate;
+  
+        if (alertPreference === 'A') {
+          alarmDate = new Date(startDate);
+        } else if (alertPreference === 'B') {
+          alarmDate = new Date(startDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before
+        } else if (alertPreference === 'C') {
+          alarmDate = new Date(startDate.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days before
+        } else if (!alertPreference) {
+          alarmDate = new Date(startDate);
+        }
+        alarmDate.setHours(9, 0, 0, 0);
+  
+        const minutesBefore = (alarmDate.getTime() - startDate.getTime()) / (60 * 1000);
+  
+        const alarm = Platform.OS === 'ios' ? alarmDate.toISOString() : -minutesBefore;
+  
+        try {
+          const eventId = await RNCalendarEvents.saveEvent(Titulo, {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            allDay: true,
+            alarms: [
+              {
+                date: alarm,
+              },
+            ],
+            description: 'CIC',
+          });
+          event.id = eventId;
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+  };
+  const deleteCalendarEvents = async () => {
+    try {
+      const startDate = new Date(0); // 1970-01-01
+      const endDate = new Date(); // today
+      endDate.setFullYear(endDate.getFullYear() + 10); // 10 years from now
+  
+      const events = await RNCalendarEvents.fetchAllEvents(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      for (const event of events) {
+        if (event.description === 'CIC') {
+          try {
+            await RNCalendarEvents.removeEvent(event.id);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  
   const getEvents = async (token) => {
-   
+    // delete previous calendar events
+    await deleteCalendarEvents();
   
     const response = await fetch('https://geweb3.cic.pt/GEWebApi/api/event', {
       headers: {
@@ -166,12 +242,19 @@ const AgendaScreen = React.memo(({route}) => {
   
     if (response.ok) {
       const dataResponse = await response.json();
-      
-      return dataResponse.map(({ Titulo, Tipo, DtaIni }) => ({
+      const events = dataResponse.map(({ Titulo, Tipo, DtaIni }) => ({
         Titulo,
         Tipo,
         DtaIni: DtaIni.split('T')[0],
       }));
+  
+      // create new calendar events
+      await createCalendarEvents(events);
+  
+      // store events in AsyncStorage
+      await AsyncStorage.setItem('events', JSON.stringify(events));
+  
+      return events;
     } else {
       // ...
     }
@@ -203,43 +286,14 @@ const AgendaScreen = React.memo(({route}) => {
       if(isConnected){
         handleSync();
       }
-      console.log("refreshing?")
+     
       wait(2000).then(() => setRefreshing(false));
     };
   
 const currentDate = moment().format("YYYY-MM-DD");
   const [isConnected, setIsConnected] = useState();
-  useEffect(() => {
-    const loadDataFromStorage = async () => {
-      const storedAgendaP = await AsyncStorage.getItem('eventsP');
-      if (storedAgendaP) {
-        setPEventDates(JSON.parse(storedAgendaP));
-      }
-    };
-    loadDataFromStorage();
-  }, []);
-  
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsConnected(state.isConnected);
-    });
-  
-    const asyncLoadData = async () => {
-       const storedAgendaP = await AsyncStorage.getItem('eventsP');
-       if (storedAgendaP) {
-         setPEventDates(JSON.parse(storedAgendaP));
-       }
-    };
-  
-    asyncLoadData();
-  
-    const intervalId = setInterval(asyncLoadData, 1000); 
-  
-    return () => {
-      clearInterval(intervalId);
-      unsubscribe();
-    };
-  }, []);
+ 
+ 
   
   const noEventsMessage = selectedDate === today
     ? 'Não tens nada agendado para hoje'
@@ -257,7 +311,7 @@ const currentDate = moment().format("YYYY-MM-DD");
     }, [isFocused]);
     useEffect(() => {
       if(!runFunction){
-        console.log("ya")
+        
         setSelectedDate(currentDate)
       }
 
@@ -267,17 +321,14 @@ const currentDate = moment().format("YYYY-MM-DD");
     const agendaData = await AsyncStorage.getItem('events');
     const turmaData = await AsyncStorage.getItem('turma');
     const agendaPData = await AsyncStorage.getItem('eventP');
-    console.log("agendapdata",agendaPData);
-    console.log(eventPDates)
+    
     
     setTurma(turmaData);
    
     if (agendaData !== null) {
       setEventDates(JSON.parse(agendaData));
+      
 
-    }
-    if(agendaPData !== null){
-      setPEventDates(JSON.parse(agendaPData));
     }
    
 
@@ -287,7 +338,7 @@ const currentDate = moment().format("YYYY-MM-DD");
   useEffect(() => {
    
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
-      console.log(isConnected);
+      
       setIsConnected(state.isConnected);
 
     });
@@ -305,34 +356,47 @@ const currentDate = moment().format("YYYY-MM-DD");
       eventsArray.push(data[key]);
     }
     setEventDates(eventsArray);
+    
     AsyncStorage.setItem('events',JSON.stringify(eventsArray))
+    
     
   });
   
   const dbRef2 = firebase.database().ref(`users/${nomeUtil}/eventsP`);
-  dbRef2.on('value', (snapshot) => {
-    const data = snapshot.val();
-    const eventsPArray = [];
-    for (let key in data) {
-      eventsPArray.push(data[key]);
+  const getCalendarEvents = async () => {
+    try {
+      const startDate = new Date(0); // 1970-01-01
+      const endDate = new Date(); // today
+      endDate.setFullYear(endDate.getFullYear() + 10); // 10 years from now
+  
+      const events = await RNCalendarEvents.fetchAllEvents(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      const cicPessoalEvents = events.filter(event => event.description === 'CIC pessoal');
+      const formattedEvents = cicPessoalEvents.map(event => ({
+        Titulo: event.title,
+        DtaIni: event.startDate.split('T')[0], // YYYY-MM-DD format
+        id: event.id,
+        idDb: 'some value',
+      }));
+      return formattedEvents;
+    } catch (error) {
+      console.error(error);
     }
-    if(eventsPArray.length>0){
-      setPEventDates(eventsPArray);
-      AsyncStorage.setItem('eventP',JSON.stringify(eventsPArray))
-    }
-    else{
-      setPEventDates([]);
-      AsyncStorage.removeItem('eventP')
-    }
-  });
+  };
+  const calendarEventP = await getCalendarEvents();
+
+  setPEventDates(calendarEventP)
   setIsLoading(false);
 }
-getDataAgenda()
+  getDataAgenda()
     }
     
 else{
   setIsLoading(false);
 }
+
 loadDataFromStorage();
       return () => {
         unsubscribeNetInfo();
@@ -379,26 +443,92 @@ loadDataFromStorage();
     const selectedDateObj = new Date(selectedDate);
     selectedDateObj.setHours(0, 0, 0, 0);
   
-    if (selectedDateObj.getTime() >= today && newEvent.length > 2 && newEvent.length < 20) {
+    if (newEvent.length > 2 && newEvent.length < 20) {
       const existingEvents = await AsyncStorage.getItem('eventP');
       const eventP = existingEvents ? JSON.parse(existingEvents) : [];
   
       const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP`);
       const newEventRef = dbRef.push();
-      const eventPData = {
-        Titulo: newEvent,
-        DtaIni: selectedDate,
-        id: newEventRef.key,
-      };
-      eventP.push(eventPData);
-      setPEventDates(eventP);
+      
+      const startDate = new Date(selectedDate);
+      const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 1 day later
+      const alertPreference = await AsyncStorage.getItem('alertPreference');
+      let alarmDate;
   
+      if (alertPreference === 'A') {
+        alarmDate = new Date(startDate);
+      } else if (alertPreference === 'B') {
+        alarmDate = new Date(startDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before
+      } else if (alertPreference === 'C') {
+        alarmDate = new Date(startDate.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days before
+      } else if (!alertPreference) {
+        alarmDate = new Date(startDate);
+      }
+      alarmDate.setHours(9, 0, 0, 0);
+
+      const minutesBefore = (alarmDate.getTime() - startDate.getTime()) / (60 * 1000);
+
+      const alarm = Platform.OS === 'ios' ? alarmDate.toISOString() : -minutesBefore;
+      toast.show('esta tarefa pode demorar alguns segundos', {
+        type: "warning",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "slide-in",
+      })
+        const eventId = await RNCalendarEvents.saveEvent(newEvent, {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          allDay: true,
+          alarms: [
+            {
+              date: alarm,
+            },
+          ],
+          description:'CIC pessoal',
+          recurrence:recurrence,
+        });
+        setAlertRecurrence('none')
+        setIsEnabled(false);
+        
+        
+  
+          const eventPData = {
+            Titulo: newEvent,
+            DtaIni: selectedDate,
+            id: eventId,
+            idDb: newEventRef.key,
+          };
+          const getCalendarEvents = async () => {
+            try {
+              const startDate = new Date(0); // 1970-01-01
+              const endDate = new Date(); // today
+              endDate.setFullYear(endDate.getFullYear() + 10); // 10 years from now
+          
+              const events = await RNCalendarEvents.fetchAllEvents(
+                startDate.toISOString(),
+                endDate.toISOString()
+              );
+              const cicPessoalEvents = events.filter(event => event.description === 'CIC pessoal');
+              const formattedEvents = cicPessoalEvents.map(event => ({
+                Titulo: event.title,
+                DtaIni: event.startDate.split('T')[0], // YYYY-MM-DD format
+                id: event.id,
+                idDb: newEventRef.key.toString(),
+              }));
+              return formattedEvents;
+            } catch (error) {
+              console.error(error);
+            }
+          };
+          const calendarEventP = await getCalendarEvents();
+          setPEventDates(calendarEventP);
       if (!isConnected) {
         const newEvents = await AsyncStorage.getItem('newEvents');
         const parsedNewEvents = newEvents ? JSON.parse(newEvents) : [];
         parsedNewEvents.push(eventPData);
         await AsyncStorage.setItem('newEvents', JSON.stringify(parsedNewEvents));
-      
+  
         // Check if the event is today or within the next 15 days
         const currentDate = new Date();
         const futureDate = new Date();
@@ -412,7 +542,9 @@ loadDataFromStorage();
           AsyncStorage.setItem('eventsHome', JSON.stringify(eventsHome));
         }
       } else {
-        newEventRef.set(eventPData);
+        // calendarEventP.forEach((event) => {
+        //   newEventRef.set(event);
+        // });
       }
   
       AsyncStorage.setItem('eventP', JSON.stringify(eventP));
@@ -425,9 +557,7 @@ loadDataFromStorage();
       })
     } else {
       setIsModal2Visible(true);
-      if (selectedDateObj.getTime() < today) {
-        setErrorMessage('Não é possível criar um evento pessoal para uma data no passado');
-      } else if (newEvent.length < 2) {
+      if (newEvent.length < 2) {
         setErrorMessage('O nome dado ao evento não tem caracteres suficientes');
       } else if (newEvent.length > 20) {
         setErrorMessage('O nome dado ao evento tem demasiado caracteres');
@@ -559,12 +689,22 @@ loadDataFromStorage();
   }
 ///////////////////////////////////////
 
-const [request, response, promptAsync] = Google.useAuthRequest({
-  androidClientId: '590857088944-g3db3hiakso6vqb9uapnur6711qkjfum.apps.googleusercontent.com',
-  
-});
+RNCalendarEvents.requestPermissions();
+const [isEnabled, setIsEnabled] = useState(false);
+const [recurrence, setAlertRecurrence] = useState('none');
 
-console.log(response);
+  useEffect(() => {
+    const getAlertRecurrence = async () => {
+      setAlertRecurrence(recurrence);
+    };
+    getAlertRecurrence();
+  }, []);
+
+  const handleSelectRecurrence = async (recurrence) => {
+    setAlertRecurrence(recurrence);
+    setIsModal4Visible(false);
+  };
+const toggleSwitch = () => setIsEnabled(previousState => !previousState);
   return (
 !isLoading ? (
   <>
@@ -587,7 +727,19 @@ console.log(response);
           placeholder="Titulo do evento"
           onChangeText={text => setNewEvent(text)}
           value={newEvent}
-        /><View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+        />
+        <View style={{flexDirection:'row',alignItems:'center',marginBottom:10,justifyContent:'flex-start'}}>
+          
+      <Switch
+        trackColor={{ false: '#767577', true: '#bdc3c7' }}
+        thumbColor={isEnabled ? '#9abebb' : '#f4f3f4'}
+        ios_backgroundColor="#3e3e3e"
+        onValueChange={() => {toggleSwitch(), !isEnabled && setIsModal4Visible(true) }}
+        value={isEnabled}
+      />
+      <Text style={global.p}>Evento recorrente?</Text>
+    </View><View style={{ flexDirection: 'row', justifyContent: 'space-around',alignItems:'flex-start' }}>
+          
           <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
             <Text style={[global.p, { color: '#9abebb' }]}>Cancelar</Text>
           </TouchableOpacity>
@@ -603,6 +755,47 @@ console.log(response);
       </View>
     </View>
   </Modal>
+  <Modal
+    animationType='fade'
+    visible={isModal4Visible}
+    onRequestClose={() => setIsModal4Visible(false)}
+    transparent={true}
+  >
+    <View style={styles.modalContainer}>
+
+      <View style={styles.modalContent}>
+      <TouchableOpacity style={[styles.closeButton]} onPress={() => setIsModal4Visible(false)}><Text>X</Text></TouchableOpacity>
+      <Text style={global.h2}>Escolhe o tipo de recurrência</Text>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,{width:250,marginTop:10}
+              
+            ]}
+            onPress={() => handleSelectRecurrence('daily')}
+          >
+            <Text style={[global.p, { color: 'white' }]}>Diária</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,{width:250,marginTop:10}
+              
+            ]}
+            onPress={() => handleSelectRecurrence('weekly')}
+          >
+            <Text style={[global.p, { color: 'white' }]}>Semanal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,{width:250,marginTop:10}
+              
+            ]}
+            onPress={() => handleSelectRecurrence('monthly')}
+          >
+            <Text style={[global.p, { color: 'white' }]}>Mensal</Text>
+          </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
  <ErrorModal visible={isModal2Visible} onClose={() => setIsModal2Visible(false)} message={errorMessage}></ErrorModal>
 
   <Header></Header>
@@ -615,13 +808,13 @@ console.log(response);
   }
 >
   <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-  <Button
-  title="Sign in with Google"
-  disabled={!request}
-  onPress={() => {
-    promptAsync();
-  }}
-/>
+ <View style={{justifyContent:'flex-end',alignItems:'flex-end',marginRight:18}}>
+  <TouchableOpacity onPress={() => setIsModal3Visible(true)}><Icon name="md-settings-outline" color={'#747d8c'} size={30}></Icon></TouchableOpacity>
+ </View>
+      <AlertPreferenceModal
+        visible={isModal3Visible}
+        onClose={() => setIsModal3Visible(false)}
+      />
     <Calendar
       onDayPress={onDayPress}
       markingType={'period'}
@@ -714,7 +907,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 4,
     padding: 8,
-    marginVertical: 20,
+    marginVertical: 10,
     fontSize: 16,
   },
   submitButton: {
@@ -754,6 +947,18 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
+  }, button: {
+    backgroundColor: '#4da6ff',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  selectedButton: {
+    backgroundColor: '#ff9933',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 
 });
