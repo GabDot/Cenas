@@ -32,7 +32,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
     // Check if the device is offline
     if (!isConnected) {
       if(newText.length >= 3 && newText.length < 20){
-        toast.show('esta tarefa pode demorar alguns segundos', {
+        toast.show('Esta tarefa pode demorar alguns segundos.', {
           type: "warning",
           placement: "bottom",
           duration: 4000,
@@ -74,6 +74,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
           offset: 30,
           animationType: "slide-in",
         })
+        onRefresh()
       } else {
         if(newText.length <= 3){
           setModalErrorVisible(true)
@@ -86,7 +87,7 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
     } else {
       if(newText.length >= 3 && newText.length < 20){
         const nomeUtil = await AsyncStorage.getItem('nomeUtil')
-        toast.show('esta tarefa pode demorar alguns segundos', {
+        toast.show('Esta tarefa pode demorar alguns segundos.', {
           type: "warning",
           placement: "bottom",
           duration: 4000,
@@ -105,13 +106,14 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
         const indexToUpdate = parsedItem.findIndex(obj => obj.id === id);
         parsedItem[indexToUpdate].Titulo = newText;
         await AsyncStorage.setItem('eventP', JSON.stringify(parsedItem));
-        toast.show('Evento editado', {
+        toast.show('Evento editado.', {
           type: "warning",
           placement: "bottom",
           duration: 4000,
           offset: 30,
           animationType: "slide-in",
         })
+        onRefresh()
       } else {
         if(newText.length <= 3){
           setModalErrorVisible(true)
@@ -131,7 +133,6 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
     // Check if the device is offline
     if (!isConnected) {
       // Store the ID of the deleted event in AsyncStorage
-     
       const deletedEvents = await AsyncStorage.getItem('deletedEvents');
       const parsedDeletedEvents = deletedEvents ? JSON.parse(deletedEvents) : [];
       parsedDeletedEvents.push(idDb);
@@ -156,30 +157,37 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
         offset: 30,
         animationType: "slide-in",
       })
+      onRefresh()
     } else {
       
       const nomeUtil = await AsyncStorage.getItem('nomeUtil')
       const dbRef = firebase.database().ref(`users/${nomeUtil}/eventsP/${idDb}`);
-      const startDate = new Date(selectedDate);
-      const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
       
       dbRef.remove()
       if(rec == 'all'){
-        RNCalendarEvents.removeEvent(id)
+       
+        RNCalendarEvents.removeEvent(id);
+        toast.show('Evento apagado.', {
+          type: "danger",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "slide-in",
+        })
       }
       else if(rec =='future'){
-        RNCalendarEvents.removeEvent(id,{exceptionDate: startDate.toISOString(),
-          futureEvents:true})
+      //   console.log("entrou")
+         const startDate = new Date(selectedDate);
+      
+        RNCalendarEvents.removeEvent(id,{
+          exceptionDate: startDate.toISOString()
+        });
+      // });
         
       }
       /*Se for todos, a data é global e apaga um a um dessa data, se for apenas os futuros, a data é apartir desse dia selecionado e apagada todos pra frente*/
-      toast.show('Evento apagado', {
-        type: "danger",
-        placement: "bottom",
-        duration: 4000,
-        offset: 30,
-        animationType: "slide-in",
-      })
+      
+      onRefresh()
     }
     
   };
@@ -193,12 +201,13 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
       );
       const check = events.filter(event => event.recurrence === 'daily' || event.recurrence === 'weekly' || event.recurrence === 'monthly');
       if(check.length > 0){
-       
+        setRecurrence(undefined);
         setRecurrence(true);
        
         
       }
       else{
+        setRecurrence(undefined);
         setRecurrence(false);
         
        
@@ -214,15 +223,15 @@ const EventList = ({ events, noEventsMessage, selectedDate, isConnected, onRefre
 useEffect(() => {
   if (!isFirstRender.current) {
     handleDeleteEvent();
-    console.log("wow")
+    console.log(hasRecurrence)
   } else {
     isFirstRender.current = false;
   }
 }, [hasRecurrence]);
   const handleDeleteEvent = () => {
-    if (hasRecurrence) {
+    if (hasRecurrence === true) {
       setModal3Visible(true);
-    } else {
+    } else if (hasRecurrence === false) {
       handleDelete(selectedEvent.idDb, selectedEvent.id, all);
     }
   };

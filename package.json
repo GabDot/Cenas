@@ -61,7 +61,8 @@
     "react-navigation": "^4.4.4",
     "react-navigation-stack": "^2.10.4",
     "rollbar-react-native": "^0.9.3",
-    "stack-navigator": "^0.0.0"
+    "stack-navigator": "^0.0.0",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"

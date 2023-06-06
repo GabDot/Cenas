@@ -188,6 +188,7 @@ const AgendaScreen = React.memo(({route}) => {
         const alarm = Platform.OS === 'ios' ? alarmDate.toISOString() : -minutesBefore;
   
         try {
+         
           const eventId = await RNCalendarEvents.saveEvent(Titulo, {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
@@ -253,11 +254,19 @@ const AgendaScreen = React.memo(({route}) => {
   
       // store events in AsyncStorage
       await AsyncStorage.setItem('events', JSON.stringify(events));
-  
+      toast.show('Sincronização completa.', {
+        type: "success",
+        placement: "bottom",
+        duration: 4000,
+        offset: 30,
+        animationType: "slide-in",
+      })
       return events;
+      
     } else {
       // ...
     }
+    
   };
   const checkUserExists = async (NomeUtil) => {
     const dbRef = firebase.database().ref(`users/${NomeUtil}`);
@@ -285,6 +294,13 @@ const AgendaScreen = React.memo(({route}) => {
       setRefreshing(true);
       if(isConnected){
         handleSync();
+        toast.show('A sincronizar por favor não saia da aplicação', {
+          type: "warning",
+          placement: "bottom",
+          duration: 4000,
+          offset: 30,
+          animationType: "slide-in",
+        })
       }
      
       wait(2000).then(() => setRefreshing(false));
@@ -333,6 +349,7 @@ const currentDate = moment().format("YYYY-MM-DD");
    
 
   }
+ 
 
 
   useEffect(() => {
@@ -342,7 +359,28 @@ const currentDate = moment().format("YYYY-MM-DD");
       setIsConnected(state.isConnected);
 
     });
+    const getCalendarEvents = async () => {
+      try {
+        const startDate = new Date(0); // 1970-01-01
+        const endDate = new Date(); // today
+        endDate.setFullYear(endDate.getFullYear() + 10); // 10 years from now
     
+        const events = await RNCalendarEvents.fetchAllEvents(
+          startDate.toISOString(),
+          endDate.toISOString()
+        );
+        const cicPessoalEvents = events.filter(event => event.description === 'CIC pessoal');
+        const formattedEvents = cicPessoalEvents.map(event => ({
+          Titulo: event.title,
+          DtaIni: event.startDate.split('T')[0], // YYYY-MM-DD format
+          id: event.id,
+          idDb: 'some value',
+        }));
+        return formattedEvents;
+      } catch (error) {
+        console.error(error);
+      }
+    };
     if(isConnected){
     
     const getDataAgenda = async () => {
@@ -363,28 +401,7 @@ const currentDate = moment().format("YYYY-MM-DD");
   });
   
   const dbRef2 = firebase.database().ref(`users/${nomeUtil}/eventsP`);
-  const getCalendarEvents = async () => {
-    try {
-      const startDate = new Date(0); // 1970-01-01
-      const endDate = new Date(); // today
-      endDate.setFullYear(endDate.getFullYear() + 10); // 10 years from now
   
-      const events = await RNCalendarEvents.fetchAllEvents(
-        startDate.toISOString(),
-        endDate.toISOString()
-      );
-      const cicPessoalEvents = events.filter(event => event.description === 'CIC pessoal');
-      const formattedEvents = cicPessoalEvents.map(event => ({
-        Titulo: event.title,
-        DtaIni: event.startDate.split('T')[0], // YYYY-MM-DD format
-        id: event.id,
-        idDb: 'some value',
-      }));
-      return formattedEvents;
-    } catch (error) {
-      console.error(error);
-    }
-  };
   const calendarEventP = await getCalendarEvents();
 
   setPEventDates(calendarEventP)
@@ -394,6 +411,13 @@ const currentDate = moment().format("YYYY-MM-DD");
     }
     
 else{
+  async function getOfflineEvents(){
+    const calendarEventP = await getCalendarEvents();
+
+  setPEventDates(calendarEventP)
+
+  }
+  getOfflineEvents();
   setIsLoading(false);
 }
 
@@ -469,13 +493,14 @@ loadDataFromStorage();
       const minutesBefore = (alarmDate.getTime() - startDate.getTime()) / (60 * 1000);
 
       const alarm = Platform.OS === 'ios' ? alarmDate.toISOString() : -minutesBefore;
-      toast.show('esta tarefa pode demorar alguns segundos', {
+      toast.show('Esta tarefa pode demorar alguns segundos.', {
         type: "warning",
         placement: "bottom",
         duration: 4000,
         offset: 30,
         animationType: "slide-in",
       })
+      console.log(startDate.toISOString())
         const eventId = await RNCalendarEvents.saveEvent(newEvent, {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
@@ -548,7 +573,7 @@ loadDataFromStorage();
       }
   
       AsyncStorage.setItem('eventP', JSON.stringify(eventP));
-      toast.show('Evento criado', {
+      toast.show('Evento criado.', {
         type: "success",
         placement: "bottom",
         duration: 4000,

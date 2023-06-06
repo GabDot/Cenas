@@ -220,7 +220,11 @@ const RadioInput = ({date,refreshing,disabled}) => {
         </TouchableOpacity>
       ))}
         </View>
-        <TouchableOpacity onPress={() => [submitSenha()]} style={styles.submitButton}><Text style={[global.p,{color:'white',fontSize:20}]}>Marcar</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => [submitSenha()]} style={styles.submitButton}>
+  <Text style={[global.p,{color:'white',fontSize:20}]}>
+    {selectedOption ? 'Remarcar' : 'Marcar'}
+  </Text>
+</TouchableOpacity>
         {selectedOption&&(<TouchableOpacity onPress={() => [eliminarSenha()]} style={{justifyContent:'center',alignItems:'center',marginVertical:10,backgroundColor:'white',padding:10,borderRadius:10,borderWidth:1,borderColor:'#9abebb'}}><Text style={[global.p,{color:'#9abebb',fontSize:20}]}>Desmarcar senha</Text></TouchableOpacity>)}
         
     </View>

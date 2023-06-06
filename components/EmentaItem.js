@@ -85,7 +85,7 @@ export default function EmentaItem({ementa}) {
       <>
       
       
-      <TouchableOpacity style={[{ marginTop: 30 }]} onPress={handlePress}>
+      <TouchableOpacity style={[{ marginTop: 10 }]} onPress={handlePress}>
   <View style={styles.ementaItem}>
   {ementa && ementa.ementa && ementa.ementa.menu ? (
   <View

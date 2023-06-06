@@ -522,6 +522,7 @@ const wait = (timeout) => {
           )} />
 
         } 
+         <Text style={[{ marginTop: 30 }, global.h2]}>Ementa de hoje</Text>
          {!ementa ? (
         <View style={{ height: 80 ,
           width: '100%',
